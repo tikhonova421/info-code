@@ -1,0 +1,2430 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Код тайного шифра — квест по системам счисления</title>
+<style>
+:root{
+  --xp-blue-dark:#0b3fae; --xp-blue-mid:#1c5adb; --xp-blue-light:#5ea3ff;
+  --xp-body:#ece9d8; --xp-body-edge:#0831d9; --xp-ink:#0a0a0a; --xp-dim:#4a4a3f;
+  --xp-green:#3fb83f; --xp-green-dark:#1e7a1e;
+  --xp-accent2:#c25400;
+  /* уменьшено на ~10% */
+  --fs-base: clamp(13.5px, 0.95vw + 11px, 19px);
+  --fs-title: clamp(17px, 1.3vw + 13px, 25px);
+  --fs-h1: clamp(20px, 1.6vw + 14px, 30px);
+  --fs-small: clamp(11.5px, 0.55vw + 10px, 14.5px);
+  --pad-body: clamp(14px, 1.8vw, 32px);
+  --gap: clamp(7px, 0.9vw, 14px);
+  --taskbar-h: clamp(44px, 3vw + 33px, 64px);
+}
+*{box-sizing:border-box;}
+html{scroll-padding-top:env(safe-area-inset-top,0px); -webkit-text-size-adjust:100%;}
+html,body{min-height:100%;}
+body{
+  margin:0;
+  font-family:Tahoma,"MS Sans Serif",Verdana,sans-serif;
+  color:var(--xp-ink);
+  font-size:var(--fs-base);
+  line-height:1.55;
+  background:
+    radial-gradient(120% 90% at 50% -10%, #bfe0ff 0%, #5ea3ff 38%, #1c5adb 70%, #0b3fae 100%)
+    fixed;
+  background-color:#1c5adb;
+  -webkit-tap-highlight-color:transparent;
+  padding-bottom:calc(var(--taskbar-h) + 10px);
+  padding-top:env(safe-area-inset-top,0px);
+  overflow-x:hidden;
+}
+h1,h2,h3{font-family:Tahoma,Verdana,sans-serif;}
+::selection{background:#3169e6; color:#fff;}
+
+#app{
+  width:min(100% - 14px, 1300px);
+  margin:0 auto;
+  padding:clamp(9px, 1.3vw, 24px) clamp(5px, 0.9vw, 18px) 10px;
+  position:relative;
+}
+
+header.bar{position:sticky; top:calc(6px + env(safe-area-inset-top,0px)); z-index:6; margin-bottom:var(--gap);}
+.statuswin{background:var(--xp-body); border:2px solid var(--xp-body-edge); border-radius:6px; box-shadow:2px 2px 8px rgba(0,0,0,.4); padding:clamp(7px,0.9vw,12px) clamp(9px,1.1vw,16px);}
+.topline{display:flex; align-items:center; gap:8px; font-size:var(--fs-small); color:var(--xp-dim); flex-wrap:wrap;}
+.topline .who{color:var(--xp-ink); font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:60%;}
+.topline .score{margin-left:auto; color:var(--xp-accent2); font-weight:bold; font-size:calc(var(--fs-small) + 2px);}
+.progress{height:clamp(14px,1.4vw,22px); border:1px solid #7a96df; background:#fff; padding:2px; margin-top:7px; border-radius:2px;}
+.progress > i{
+  display:block; height:100%; width:0%; transition:width .5s ease; border-radius:1px;
+  background:repeating-linear-gradient(90deg,#49d449 0 9px,#2fae2f 9px 11px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6);
+}
+
+.win{
+  background:var(--xp-body);
+  border:2px solid var(--xp-body-edge);
+  border-radius:8px 8px 4px 4px;
+  margin:var(--gap) 0;
+  box-shadow:3px 3px 12px rgba(0,0,0,.45);
+  overflow:hidden;
+}
+.titlebar{
+  background:linear-gradient(180deg,#5ea3ff 0%,#2f74ea 10%,#1c5adb 45%,#0f47c2 92%,#0c3fb5 100%);
+  color:#fff;
+  padding:clamp(7px,0.8vw,12px) clamp(9px,0.9vw,16px);
+  font-weight:bold;
+  font-size:clamp(12px,0.85vw + 9px,17px);
+  display:flex; align-items:center; gap:6px;
+  text-shadow:1px 1px 1px rgba(0,0,0,.45);
+  border-bottom:1px solid #06318f;
+}
+.titlebar > span:first-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.titlebar .wbtns{margin-left:auto; display:flex; gap:3px; flex-shrink:0;}
+.titlebar .wbtns span{
+  width:clamp(18px,1.5vw,25px); height:clamp(16px,1.4vw,23px);
+  background:linear-gradient(180deg,#fff,#d3d3d3); border:1px solid #5b5b5b;
+  border-radius:2px; display:flex; align-items:center; justify-content:center;
+  font-size:10px; color:#222; font-weight:bold;
+}
+.winbody{
+  padding:var(--pad-body);
+  background:linear-gradient(180deg,#f3f1e6,var(--xp-body) 40px);
+  max-height:calc(100dvh - var(--taskbar-h) - 120px);
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+}
+.screen{display:none;}
+.screen.active{display:block; animation:fade .3s ease;}
+@keyframes fade{from{opacity:0; transform:translateY(5px);} to{opacity:1; transform:none;}}
+
+button{font-family:inherit;}
+.btn{
+  cursor:pointer; border-radius:3px;
+  padding:clamp(9px,0.9vw,14px) clamp(14px,1.4vw,22px);
+  font-size:clamp(12.5px,0.9vw,16px);
+  min-height:clamp(40px,3vw,48px);
+  border:1px solid #6b6b58; color:#111;
+  background:linear-gradient(180deg,#fefefe 0%,#ece9d8 45%,#d9d3bd 50%,#eae6d5 100%);
+  box-shadow:inset 0 1px 0 #fff;
+  font-family:inherit;
+}
+.btn:active{background:linear-gradient(180deg,#d9d3bd,#ece9d8); box-shadow:inset 1px 1px 4px rgba(0,0,0,.35);}
+.btn.primary{border:1px solid var(--xp-blue-dark); box-shadow:inset 0 1px 0 #fff, 0 0 0 1px #9fc0ff; font-weight:bold;}
+.btn.secondary{background:linear-gradient(180deg,#fefefe,#ece9d8); color:var(--xp-blue-dark);}
+.btn.reset{background:linear-gradient(180deg,#fff2e6,#ffd9ad 45%,#f5b35c 50%,#ffe4bd); border-color:#a35c00; color:#5a3200; padding:clamp(7px,.7vw,11px) clamp(10px,1vw,17px); min-height:clamp(34px,2.7vw,42px);}
+.btn:disabled{opacity:.45; cursor:not-allowed;}
+.row-btns{display:flex; gap:9px; flex-wrap:wrap; margin-top:var(--gap); align-items:center;}
+
+.avatars{display:flex; gap:9px; flex-wrap:wrap; margin:11px 0;}
+.avatars button{
+  font-size:clamp(22px,1.8vw,30px);
+  width:clamp(48px,3.6vw,64px); height:clamp(48px,3.6vw,64px);
+  border-radius:6px; cursor:pointer;
+  background:linear-gradient(180deg,#fff,#dfe8fb); border:1px solid #7a96df;
+  display:flex; align-items:center; justify-content:center; padding:0;
+}
+.avatars button.picked{border:3px solid var(--xp-blue-dark); background:linear-gradient(180deg,#cfe0ff,#9fc0ff);}
+input[type=text]{
+  width:100%; padding:clamp(9px,0.9vw,13px);
+  border-radius:2px; border:1px solid #7a7a7a; border-top-color:#4d4d4d;
+  background:#fff; color:#111; font-family:inherit;
+  font-size:clamp(12.5px,0.9vw,16px);
+  min-height:clamp(40px,3vw,48px);
+  box-shadow:inset 1px 1px 2px rgba(0,0,0,.25);
+}
+
+details.spoiler{border:1px solid #7a96df; border-radius:3px; margin:9px 0; background:#fffdf4;}
+details.spoiler summary{
+  padding:clamp(9px,0.9vw,13px) clamp(10px,1.1vw,16px);
+  cursor:pointer; font-weight:bold; color:var(--xp-blue-dark);
+  list-style:none; display:flex; align-items:center; gap:8px;
+  font-size:clamp(12.5px,0.85vw,16px);
+}
+details.spoiler summary::before{content:"▸"; transition:transform .2s; flex-shrink:0; font-size:1.1em; color:#7a96df;}
+details.spoiler[open] summary::before{transform:rotate(90deg);}
+details.spoiler summary::-webkit-details-marker{display:none;}
+details.spoiler .body{
+  padding:0 clamp(10px,1.1vw,16px) clamp(10px,1.1vw,16px);
+  color:#333; line-height:1.6;
+  font-size:clamp(12.5px,0.85vw,16px);
+  border-top:1px dashed #cdd7ef; padding-top:9px;
+}
+details.spoiler .body code{background:#eef3ff; padding:1px 5px; border-radius:2px; font-family:Consolas,monospace; color:#0b3fae; font-size:0.96em; word-break:break-word;}
+details.spoiler .body b{color:#0b3fae;}
+.conclusion{
+  background:#fff7d6; border:1px solid #d9b23a; color:#5a4400;
+  border-radius:3px; padding:clamp(9px,0.9vw,13px) clamp(10px,1.1vw,16px);
+  font-size:clamp(12.5px,0.85vw,16px); line-height:1.55; margin-top:11px;
+  box-shadow:inset 0 0 0 1px #fffbe8;
+}
+.conclusion b{color:#7a3f00;}
+
+.lvl-tag{color:var(--xp-dim); font-size:var(--fs-small); margin-bottom:3px; letter-spacing:.3px;}
+h2.lvl-title{margin:0 0 9px; font-size:var(--fs-title); color:var(--xp-blue-dark); line-height:1.25;}
+.task-text{
+  font-size:clamp(12.5px,0.88vw,16px);
+  color:#333; background:#eef3ff; border:1px dashed #9fb8ee;
+  padding:clamp(9px,0.9vw,13px) clamp(10px,1.1vw,16px);
+  border-radius:3px; margin-top:12px; line-height:1.55;
+}
+
+.toggle-rack{display:flex; gap:7px; justify-content:center; flex-wrap:wrap; margin:14px 0;}
+.bit-col{display:flex; flex-direction:column; align-items:center; gap:5px; width:clamp(42px,3.2vw,58px);}
+.weight-slot{
+  width:100%; height:clamp(28px,2.3vw,40px);
+  border:1.5px dashed #8a8a72; border-radius:3px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:clamp(11px,0.8vw,14.5px); color:var(--xp-dim);
+  background:#fff;
+}
+.weight-slot.filled{border-style:solid; border-color:var(--xp-blue-dark); color:#111; background:#eef3ff;}
+.toggle{
+  width:100%; height:clamp(50px,4.2vw,70px);
+  border-radius:6px; background:#d7d2bd; border:1px solid #8a8a72; position:relative; padding:3px;
+  box-shadow:inset 1px 1px 3px rgba(0,0,0,.25);
+  cursor:pointer;
+}
+.toggle .knob{
+  width:100%; height:40%; border-radius:3px;
+  background:linear-gradient(180deg,#fff,#c9c9c9); border:1px solid #777;
+  transition:transform .2s, background .2s;
+}
+.toggle.on{background:#cdeecd;}
+.toggle.on .knob{transform:translateY(calc((clamp(50px,4.2vw,70px) - 6px) * 0.6)); background:linear-gradient(180deg,#8be08b,#3fa93f); border-color:#1e7a1e; box-shadow:0 0 8px #3fa93f;}
+.weight-pool{display:flex; gap:7px; justify-content:center; flex-wrap:wrap; margin:12px 0; min-height:40px;}
+.chip{
+  padding:clamp(7px,0.7vw,11px) clamp(10px,1vw,16px);
+  border-radius:3px;
+  background:linear-gradient(180deg,#fff,#dfe8fb); border:1px solid #7a96df;
+  font-size:clamp(12.5px,0.88vw,16px);
+  cursor:grab; touch-action:none; user-select:none;
+  box-shadow:1px 1px 2px rgba(0,0,0,.2);
+  -webkit-user-select:none;
+}
+.chip.ghost-dragging{opacity:.35;}
+.sum-readout{text-align:center; font-size:clamp(12.5px,0.9vw,16px); color:var(--xp-dim); margin-top:6px;}
+.sum-readout b{color:var(--xp-accent2); font-size:1.2em;}
+
+.dz-row{
+  display:flex; gap:clamp(5px,0.7vw,11px);
+  justify-content:center; flex-wrap:wrap;
+  margin:12px 0;
+}
+.dz{
+  width:clamp(48px,4vw,66px); height:clamp(48px,4vw,66px);
+  border:1.5px dashed #8a8a72; border-radius:3px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  font-size:clamp(14px,1.1vw,18px); color:var(--xp-dim);
+  background:#fff; position:relative;
+}
+.dz .weight-hint{
+  position:absolute; bottom:4px; left:0; right:0;
+  text-align:center;
+  font-size:clamp(9px,0.65vw,11.5px);
+  color:var(--xp-dim);
+  line-height:1;
+  pointer-events:none;
+}
+.dz.filled{border-style:solid; border-color:var(--xp-blue-dark); color:#111; background:#eef3ff;}
+.dz.filled .weight-hint{color:#3a5bbf; opacity:.75;}
+
+.ladder{display:flex; flex-direction:column; gap:7px; margin:12px 0;}
+.rung{
+  display:flex; align-items:center; gap:9px;
+  font-size:clamp(12.5px,0.88vw,16px);
+  background:#fff; border:1px solid #cdd7ef; border-radius:3px;
+  padding:clamp(7px,0.8vw,12px) clamp(9px,1vw,14px);
+  flex-wrap:nowrap;
+}
+.rung .eq{color:#333; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis;}
+.rung .rem-slot{
+  width:clamp(34px,2.9vw,46px); height:clamp(34px,2.9vw,46px);
+  border:1.5px dashed #8a8a72; border-radius:3px;
+  display:flex; align-items:center; justify-content:center;
+  background:#fdfdf6; font-size:clamp(14px,1.1vw,18px);
+  flex-shrink:0;
+}
+.rung.filled .rem-slot{border-style:solid; border-color:var(--xp-blue-dark); background:#eef3ff;}
+.rem-pool{display:flex; gap:7px; justify-content:center; margin:10px 0; flex-wrap:wrap;}
+
+.adder{
+  font-size:clamp(16px,1.4vw,25px);
+  text-align:right; letter-spacing:clamp(3px,0.4vw,6px);
+  margin:12px 0; color:#222;
+  overflow-x:auto; padding-bottom:4px;
+}
+.adder .line{display:flex; justify-content:flex-end; gap:7px;}
+.adder .num{color:var(--xp-dim);}
+.result-slots{display:flex; gap:clamp(4px,0.55vw,7px); justify-content:flex-end;}
+.res-slot{
+  width:clamp(28px,2.5vw,42px); height:clamp(34px,3vw,48px);
+  border:1.5px dashed #8a8a72; border-radius:3px;
+  display:flex; align-items:center; justify-content:center;
+  background:#fff; font-size:clamp(14px,1.1vw,18px);
+}
+.res-slot.filled{border-style:solid; border-color:var(--xp-blue-dark); background:#eef3ff;}
+.bit-pool{display:flex; gap:7px; justify-content:center; margin:12px 0; flex-wrap:wrap;}
+.hexcard{
+  width:clamp(48px,4vw,66px); height:clamp(48px,4vw,66px);
+  display:flex; align-items:center; justify-content:center;
+  font-size:clamp(15px,1.3vw,22px); font-weight:bold;
+}
+
+.feedback{margin-top:11px; font-size:clamp(12.5px,0.88vw,16px); border-radius:3px; padding:clamp(9px,0.9vw,13px) clamp(10px,1.1vw,16px); display:none;}
+.feedback.show{display:block;}
+.feedback.ok{background:#e4f7e4; color:#1e7a1e; border:1px solid #7fca7f;}
+.feedback.bad{background:#fbe4e4; color:#a33; border:1px solid #e39a9a;}
+
+.hint-btn{
+  font-size:clamp(11.5px,0.8vw,15.5px);
+  color:var(--xp-dim); background:#fdfdf6;
+  border:1px dashed #8a8a72; border-radius:3px;
+  padding:clamp(7px,0.7vw,11px) clamp(10px,0.9vw,15px);
+  cursor:pointer;
+}
+.hint-text{font-size:clamp(12.5px,0.88vw,16px); color:var(--xp-accent2); margin-top:9px; display:none; line-height:1.5;}
+.hint-text.show{display:block;}
+
+.cert{border:2px solid var(--xp-blue-dark); text-align:center; padding:0; transition:border-color .4s, box-shadow .4s;}
+.cert .winbody{background:linear-gradient(180deg,#fff7d6,#ffe9a8);}
+.cert .stamp{font-size:clamp(34px,3.6vw,56px);}
+.cert h2{margin:7px 0 4px; color:#5a4400; font-size:clamp(20px,1.6vw,28px);}
+.cert .code{font-family:Consolas,monospace; letter-spacing:2px; color:var(--xp-accent2); font-size:clamp(11px,0.8vw,15px); margin-top:11px; word-break:break-word;}
+.cert-preview{max-width:100%; border:1px solid #b89a3a; border-radius:4px; margin-top:14px; box-shadow:2px 2px 8px rgba(0,0,0,.3);}
+#certCanvas{display:none;}
+.rank-badge{
+  display:inline-block; margin-top:7px; padding:5px 14px; border-radius:20px;
+  font-weight:bold; font-size:clamp(12px,0.88vw,16px); border:2px solid;
+}
+.rank-novice{background:#efe6c9; color:#7a5a00; border-color:#b89a3a;}
+.rank-specialist{background:#d4e6ff; color:#0b3fae; border-color:#1c5adb;}
+.rank-grandmaster{background:linear-gradient(135deg,#ffe9a8,#ffcf40); color:#7a3f00; border-color:#c25400; box-shadow:0 0 14px rgba(255,180,0,.6);}
+
+footer.note{color:#eaf1ff; font-size:var(--fs-small); text-align:center; margin-top:16px; text-shadow:1px 1px 1px rgba(0,0,0,.3); position:relative; z-index:1;}
+
+.taskbar{
+  position:fixed; left:0; right:0; bottom:0;
+  height:var(--taskbar-h);
+  z-index:20;
+  background:linear-gradient(180deg,#2f7de0 0%,#1c5adb 12%,#153fb0 90%);
+  border-top:1px solid #6fa8ff;
+  display:flex; align-items:center; gap:7px;
+  padding:0 clamp(7px,0.9vw,16px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-top:env(safe-area-inset-top,0px);
+  font-size:clamp(11px,0.8vw,15px);
+}
+.start-btn{
+  background:linear-gradient(180deg,#7fe37f,#2f9e2f 45%,#1e7a1e 50%,#3fb83f);
+  color:#fff; font-weight:bold; font-style:italic;
+  font-size:clamp(11.5px,0.85vw,15.5px);
+  border:1px solid #145214; border-radius:4px;
+  padding:clamp(5px,0.6vw,10px) clamp(10px,1vw,17px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5);
+  flex-shrink:0;
+  cursor:pointer;
+  font-family:inherit;
+}
+.task-current{
+  background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); border-radius:3px;
+  color:#fff; font-size:clamp(10.5px,0.8vw,15px);
+  padding:clamp(5px,0.6vw,10px) clamp(7px,0.8vw,13px);
+  flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  min-width:0;
+}
+.task-clock{
+  color:#fff; font-size:clamp(10.5px,0.8vw,15px);
+  background:rgba(0,0,0,.15); border:1px solid rgba(255,255,255,.2); border-radius:3px;
+  padding:clamp(5px,0.6vw,10px) clamp(6px,0.7vw,11px);
+  flex-shrink:0;
+  cursor:pointer;
+}
+.task-sound{
+  color:#fff; font-size:clamp(12px,0.9vw,17px);
+  background:rgba(0,0,0,.15); border:1px solid rgba(255,255,255,.2); border-radius:3px;
+  padding:clamp(4px,0.55vw,9px) clamp(7px,0.8vw,13px);
+  cursor:pointer; min-width:clamp(34px,2.7vw,46px);
+  flex-shrink:0;
+  font-family:inherit;
+}
+
+.start-menu{
+  position:fixed; left:8px; bottom:calc(var(--taskbar-h) + 5px); z-index:25;
+  background:linear-gradient(180deg,#5ea3ff 0%,#1c5adb 25%,#0c3fb5 100%);
+  border:1px solid #06318f; border-radius:6px 6px 4px 4px;
+  padding:5px; min-width:220px;
+  box-shadow:3px 3px 14px rgba(0,0,0,.55);
+  display:none; transform-origin:bottom left;
+}
+.start-menu.open{display:block; animation:startPop .18s ease-out;}
+@keyframes startPop{from{opacity:0; transform:scale(.92) translateY(10px);} to{opacity:1; transform:none;}}
+.start-menu .sm-header{
+  background:linear-gradient(180deg,#3fb83f,#1e7a1e);
+  color:#fff; font-weight:bold; font-style:italic;
+  padding:8px 11px; border-radius:4px 4px 0 0;
+  font-size:13px; text-shadow:1px 1px 1px rgba(0,0,0,.5);
+  border:1px solid #145214;
+}
+.start-menu .sm-item{
+  display:block; width:100%; text-align:left;
+  background:transparent; border:none; color:#fff;
+  padding:9px 13px; font-size:12.5px; cursor:pointer;
+  border-radius:2px; margin-top:2px;
+  text-shadow:1px 1px 1px rgba(0,0,0,.4);
+  font-family:inherit;
+}
+.start-menu .sm-item:hover{background:rgba(255,255,255,.2);}
+.start-menu .sm-sep{height:1px; background:rgba(255,255,255,.25); margin:4px 6px;}
+
+.bsod{
+  position:fixed; inset:0; z-index:9999;
+  background:#0000aa; color:#fff;
+  font-family:"Lucida Console",Consolas,monospace;
+  padding:clamp(18px,3.5vw,54px);
+  display:none; flex-direction:column; justify-content:center;
+  font-size:clamp(12px,0.9vw,16px); line-height:1.7;
+}
+.bsod.show{display:flex;}
+.bsod .bsod-h{
+  background:#aaa; color:#0000aa; padding:2px 10px;
+  align-self:flex-start; font-weight:bold; margin-bottom:18px;
+}
+.bsod p{margin:6px 0; max-width:900px;}
+.bsod .blink{animation:blink 1s infinite;}
+@keyframes blink{50%{opacity:0;}}
+
+.eye{
+  position:fixed; top:20px; right:20px; z-index:50;
+  font-size:clamp(26px,2.8vw,48px);
+  opacity:0; transition:opacity 3s ease;
+  pointer-events:none;
+}
+.eye.show{opacity:.85;}
+
+.speedrun-badge{
+  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(.6);
+  z-index:60; pointer-events:none; opacity:0;
+  font-size:clamp(26px,3.6vw,58px); font-weight:bold;
+  color:#fff;
+  text-shadow:0 0 20px #ffcf40, 0 0 40px #ff7a00, 3px 3px 0 #c25400;
+  letter-spacing:3px;
+  transition:opacity .4s, transform .4s;
+}
+.speedrun-badge.show{opacity:1; transform:translate(-50%,-50%) scale(1);}
+.speedrun-badge::before{content:"⚡ SPEEDRUN MODE ⚡"; display:block;}
+
+.bonus-hint{
+  text-align:center; margin-top:24px;
+  color:rgba(90,68,0,.35);
+  font-size:clamp(10.5px,0.8vw,13px);
+  cursor:pointer; user-select:none;
+  transition:color .3s;
+  letter-spacing:1px;
+  -webkit-user-select:none;
+}
+.bonus-hint:hover{color:rgba(90,68,0,.85);}
+.maze-wrap{
+  margin-top:14px; text-align:center;
+  background:#000; padding:clamp(9px,1.1vw,16px);
+  border-radius:6px; border:2px solid #1c5adb;
+  display:none;
+}
+.maze-wrap.show{display:block;}
+#mazeCanvas{
+  display:block; margin:0 auto;
+  background:#111;
+  border:2px solid #3fb83f;
+  max-width:100%; height:auto;
+  image-rendering:pixelated;
+  touch-action:none;
+}
+.maze-controls{
+  color:#8fe88f; font-family:"Lucida Console",monospace;
+  font-size:clamp(10.5px,0.8vw,13px);
+  margin-top:9px; line-height:1.5;
+}
+.maze-dpad{
+  display:none; margin-top:11px; gap:6px;
+  justify-content:center; align-items:center;
+  grid-template-columns:repeat(3,minmax(0,56px));
+  grid-template-rows:repeat(2,minmax(0,56px));
+}
+.maze-dpad.show{display:grid;}
+.maze-dpad button{
+  background:linear-gradient(180deg,#3fb83f,#1e7a1e);
+  color:#fff; border:1px solid #0d4d0d; border-radius:6px;
+  font-size:18px; cursor:pointer; font-weight:bold;
+  touch-action:none;
+}
+.maze-dpad .dpad-up{grid-column:2; grid-row:1;}
+.maze-dpad .dpad-left{grid-column:1; grid-row:2;}
+.maze-dpad .dpad-down{grid-column:2; grid-row:2;}
+.maze-dpad .dpad-right{grid-column:3; grid-row:2;}
+
+.maze-win{
+  display:none;
+  background:linear-gradient(135deg,#ffe9a8,#ffcf40);
+  border:3px solid #c25400;
+  border-radius:8px; padding:clamp(14px,1.8vw,26px);
+  margin-top:14px;
+  text-align:center;
+  box-shadow:0 0 30px rgba(255,180,0,.7);
+  animation:fade .5s ease;
+}
+.maze-win.show{display:block;}
+.maze-win h3{margin:0 0 10px; color:#7a3f00; font-size:clamp(16px,1.4vw,24px);}
+.maze-win p{margin:8px 0; color:#5a4400; font-size:clamp(12.5px,0.9vw,16px);}
+
+@media (max-width:600px){
+  .maze-dpad{display:grid;}
+  .maze-dpad:not(.show){display:grid;}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .screen.active{animation:none;}
+  *{transition:none !important;}
+  .eye{transition:none;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header class="bar" id="topbar" style="display:none;">
+    <div class="statuswin">
+      <div class="topline">
+        <span id="whoTag" class="who"></span>
+        <span class="score">★ <span id="scoreTag">0</span></span>
+      </div>
+      <div class="progress"><i id="progFill"></i></div>
+    </div>
+  </header>
+
+  <section class="screen active" id="s-onboard">
+    <div class="win">
+      <div class="titlebar"><span>🖥️ Станция «Горизонт-9».exe</span><div class="wbtns"><span>_</span><span>□</span><span>×</span></div></div>
+      <div class="winbody">
+        <div class="lvl-tag">ДОСТУП ЗАБЛОКИРОВАН</div>
+        <h1 style="margin:2px 0 10px; font-size:var(--fs-h1); color:var(--xp-blue-dark);">Код тайного шифра</h1>
+        <p style="color:#333;">
+          Станция обесточена, все двери заперты на кодовые замки. Единственный способ пройти —
+          разобраться, как устроены системы счисления, и взломать десять уровней защиты.
+          Перед каждым уровнем — теория с нуля: если ты никогда не слышал про двоичную систему,
+          просто читай блоки по порядку. Подсказки — со штрафом, кнопка сброса — если запутался.
+        </p>
+        <p style="font-weight:bold; margin-top:16px;">Как к тебе обращаться?</p>
+        <input type="text" id="nickInput" placeholder="Позывной (например, Байт)" maxlength="18">
+        <p style="font-weight:bold; margin-top:16px;">Выбери значок</p>
+        <div class="avatars" id="avatarPick">
+          <button data-a="🛰️">🛰️</button>
+          <button data-a="💻">💻</button>
+          <button data-a="🦾">🦾</button>
+          <button data-a="👾">👾</button>
+          <button data-a="🤖">🤖</button>
+          <button data-a="🔧">🔧</button>
+        </div>
+        <div class="row-btns">
+          <button class="btn primary" id="startBtn" disabled>Начать взлом →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- УРОВЕНЬ 1 -->
+  <section class="screen" id="s-1">
+    <div class="win">
+      <div class="titlebar"><span>🔒 Уровень 1 — Замок с тумблерами</span><div class="wbtns"><span>_</span><span>□</span><span>×</span></div></div>
+      <div class="winbody">
+      <div class="lvl-tag">УРОВЕНЬ 1 / 10</div>
+      <h2 class="lvl-title">Позиционные системы счисления</h2>
+
+      <details class="spoiler" open>
+        <summary>Теория: что такое система счисления</summary>
+        <div class="body">
+          <b>Система счисления</b> — это способ записывать числа с помощью ограниченного набора знаков (цифр).
+          Знаков может быть разное количество, и от этого зависит «основание» системы.
+          Например, в привычной нам системе 10 цифр (0–9), поэтому она называется <b>десятичной</b>.
+          В компьютере используют всего 2 цифры (0 и 1) — это <b>двоичная</b> система.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Теория: позиционные и непозиционные системы</summary>
+        <div class="body">
+          В римской системе цифра всегда значит одно и то же: <code>X</code> — это всегда 10, где бы она ни стояла.
+          Это <b>непозиционная</b> система: значение цифры не зависит от места.
+          Попробуй записать римскими цифрами 1998 — получится громоздкое <code>MCMXCVIII</code>.
+          А в привычном числе <code>555</code> каждая пятёрка означает разное: 500, 50 и 5.
+          Место (позиция) цифры определяет её вес. Это <b>позиционная</b> система.
+          Все системы, с которыми мы будем работать, — позиционные.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Ключевая идея: вес разряда</summary>
+        <div class="body">
+          В любой позиционной системе у каждого разряда (места цифры) есть <b>вес</b> — во сколько раз
+          этот разряд «дороже» самого правого. В десятичной: 1, 10, 100, 1000... — каждый следующий
+          в 10 раз больше. В двоичной: 1, 2, 4, 8, 16, 32, 64, 128... — каждый следующий в 2 раза больше.
+          Число = сумма цифра × вес её разряда. Именно так мы считаем и в жизни:
+          <code>347 = 3·100 + 4·10 + 7·1</code>.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Пример: как читать двоичное число</summary>
+        <div class="body">
+          Возьмём <code>1011₂</code> (индекс ₂ значит «в двоичной системе»). Веса справа налево: 1, 2, 4, 8.
+          Считаем: 1·8 + 0·4 + 1·2 + 1·1 = 8 + 0 + 2 + 1 = <b>11</b>.
+          Нули просто «выключают» вес — можно складывать только те веса, где стоит единица.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Частая ошибка новичка</summary>
+        <div class="body">
+          Нельзя путать <code>11₁₀</code> и <code>11₂</code>: первое — одиннадцать, второе — три.
+          Чтобы не путаться, всегда указывай индекс системы или пиши значок <code>₂</code> для двоичной.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Интересный факт: почему компьютер выбрал 0 и 1</summary>
+        <div class="body">
+          Внутри процессора миллиарды транзисторов, и у каждого устойчивы только два состояния:
+          «есть ток» и «нет тока». Надёжно различить десять разных уровней напряжения гораздо сложнее,
+          поэтому компьютер «мыслит» двумя символами. Байт — это 8 таких транзисторов (8 бит).
+          Если все включены: 128+64+32+16+8+4+2+1 = 255. Значит, один байт хранит любое число от 0 до 255 —
+          ровно 256 значений. Отсюда диапазон яркости цвета 0–255 в графике.
+        </div>
+      </details>
+
+      <div class="conclusion"><b>Вывод:</b> каждый разряд двоичного числа — это вес, равный степени двойки.
+      Справа налево: 1, 2, 4, 8, 16, 32, 64, 128.</div>
+
+      <div class="task-text">
+        Загадка: сначала перетащи веса на нужные тумблеры (по возрастанию слева направо: 128…1),
+        затем щелчками включи тумблеры так, чтобы сумма включённых весов дала <b>13</b>.
+      </div>
+
+      <div class="weight-pool" id="l1-pool"></div>
+      <div class="toggle-rack" id="l1-rack"></div>
+      <div class="sum-readout">Собрано: <b id="l1-sum">0</b> / нужно 13</div>
+
+      <div class="row-btns">
+        <button class="hint-btn" id="l1-hint">🔍 Подсказка (−5 очков)</button>
+        <button class="btn reset" id="l1-reset">↺ Сбросить</button>
+      </div>
+      <div class="hint-text" id="l1-hint-text">13 = 8 + 4 + 1. Включи тумблеры под весами 8, 4 и 1.</div>
+      <div class="feedback" id="l1-fb"></div>
+      <div class="row-btns">
+        <button class="btn primary" id="l1-check">Проверить замок</button>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- УРОВЕНЬ 2 -->
+  <section class="screen" id="s-2">
+    <div class="win">
+      <div class="titlebar"><span>📡 Уровень 2 — Дешифровка сообщения</span><div class="wbtns"><span>_</span><span>□</span><span>×</span></div></div>
+      <div class="winbody">
+      <div class="lvl-tag">УРОВЕНЬ 2 / 10</div>
+      <h2 class="lvl-title">Перевод из 2-й системы в 10-ю</h2>
+
+      <details class="spoiler" open>
+        <summary>Теория: развёрнутая формула числа</summary>
+        <div class="body">
+          Любое число в позиционной системе можно записать как сумму: <b>цифра × основание<sup>позиция</sup></b>.
+          Для двоичного числа <code>d₇d₆d₅d₄d₃d₂d₁d₀</code> формула такая:
+          <code>d₇·2⁷ + d₆·2⁶ + ... + d₁·2¹ + d₀·2⁰</code>.
+          Помни: любое число в степени 0 равно 1, поэтому самый правый разряд всегда весит 1.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Пример: пошаговый перевод 1011₂</summary>
+        <div class="body">
+          Расставим веса над цифрами: 8, 4, 2, 1.<br>
+          <code>1·8 = 8</code><br>
+          <code>0·4 = 0</code><br>
+          <code>1·2 = 2</code><br>
+          <code>1·1 = 1</code><br>
+          Складываем: 8 + 0 + 2 + 1 = <b>11₁₀</b>.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Ключевая идея: складывай только единицы</summary>
+        <div class="body">
+          Нули ничего не добавляют к сумме, поэтому можно просто выписать веса тех разрядов, где стоят
+          единицы, и сложить их. Например, <code>01001000₂</code>: единицы на позициях с весами 64 и 8,
+          значит число = 64 + 8 = <b>72</b>.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Частая ошибка: считать слева направо</summary>
+        <div class="body">
+          Веса растут <b>справа налево</b>, а не наоборот! Самый правый бит — это 1, следующий — 2,
+          потом 4, 8, 16... Если посчитать слева направо, получится совсем другое (неправильное) число.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Интересный факт: почему 8 бит — это байт</summary>
+        <div class="body">
+          8 бит позволяют закодировать 256 значений — этого хватает, чтобы закодировать все латинские
+          буквы, цифры, знаки препинания и управляющие символы. Так появилась таблица ASCII.
+          Именно поэтому байт стал стандартной единицей информации.
+        </div>
+      </details>
+
+      <div class="conclusion"><b>Вывод:</b> перевести из 2-й в 10-ю = сложить веса разрядов, где стоит единица.</div>
+
+      <div class="task-text">
+        Перехвачен код <b>01001000</b>. Перетащи в ячейки под единицами
+        соответствующий вес, затем впиши итоговую сумму — это и есть расшифрованное число.
+      </div>
+      <div class="weight-pool" id="l2-pool"></div>
+      <div class="dz-row" id="l2-row"></div>
+      <div style="text-align:center; margin-top:18px;">
+        <input type="text" id="l2-answer" inputmode="numeric" placeholder="Итоговое число" style="max-width:240px; text-align:center; display:inline-block;">
+      </div>
+
+      <div class="row-btns">
+        <button class="hint-btn" id="l2-hint">🔍 Подсказка (−10 очков)</button>
+        <button class="btn reset" id="l2-reset">↺ Сбросить</button>
+      </div>
+      <div class="hint-text" id="l2-hint-text">Единицы стоят в разрядах с весами 64 и 8. Сложи: 64 + 8 = 72.</div>
+      <div class="feedback" id="l2-fb"></div>
+      <div class="row-btns">
+        <button class="btn primary" id="l2-check">Проверить</button>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- УРОВЕНЬ 3 -->
+  <section class="screen" id="s-3">
+    <div class="win">
+      <div class="titlebar"><span>🗝️ Уровень 3 — Собери шифр</span><div class="wbtns"><span>_</span><span>□</span><span>×</span></div></div>
+      <div class="winbody">
+      <div class="lvl-tag">УРОВЕНЬ 3 / 10</div>
+      <h2 class="lvl-title">Перевод из 10-й системы в 2-ю</h2>
+
+      <details class="spoiler" open>
+        <summary>Теория: обратная задача</summary>
+        <div class="body">
+          Мы умеем переводить из двоичной в десятичную. Теперь обратная задача: есть обычное
+          число (например, 22), нужно получить его двоичный код.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Теория: метод деления с остатком</summary>
+        <div class="body">
+          Число делится на 2 столько раз, пока не получится 0. На каждом шаге записывается остаток
+          (0 или 1). Затем остатки читаются <b>снизу вверх</b> — это и есть двоичный код.
+          Почему работает? Потому что остаток от деления на 2 — это младший бит числа, а частное —
+          «сдвиг» числа вправо на один разряд.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Пример: переводим 22</summary>
+        <div class="body">
+          <code>22 ÷ 2 = 11</code>, остаток <b>0</b><br>
+          <code>11 ÷ 2 = 5</code>, остаток <b>1</b><br>
+          <code>5 ÷ 2 = 2</code>, остаток <b>1</b><br>
+          <code>2 ÷ 2 = 1</code>, остаток <b>0</b><br>
+          <code>1 ÷ 2 = 0</code>, остаток <b>1</b><br>
+          Читаем снизу вверх: <b>10110₂</b>.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Ключевая идея: самопроверка через веса</summary>
+        <div class="body">
+          Получив двоичный код, всегда можно проверить себя способом из уровня 2 — сложить веса
+          разрядов, где стоят единицы. Для 10110: 16 + 4 + 2 = 22. Совпало — перевод верный.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Частая ошибка: читать остатки сверху вниз</summary>
+        <div class="body">
+          Если прочитать остатки в том порядке, в котором они получились (сверху вниз), число окажется
+          перевёрнутым. Первый остаток — это младший бит (самый правый), последний — старший.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Интересный факт: этот алгоритм знает каждый процессор</summary>
+        <div class="body">
+          Деление на 2 с остатком процессор выполняет за один такт — это просто сдвиг вправо.
+          А в Древнем Египте был похожий метод удвоения для умножения, задолго до появления компьютеров.
+        </div>
+      </details>
+
+      <div class="conclusion"><b>Вывод:</b> делим на 2 до нуля, остатки читаем снизу вверх — это и есть двоичный код.</div>
+
+      <div class="task-text">
+        Нужно закодировать число <b>19</b>. На каждой ступени перетащи
+        нужный остаток (0 или 1) в ячейку.
+      </div>
+      <div class="rem-pool" id="l3-pool"></div>
+      <div class="ladder" id="l3-ladder"></div>
+      <div class="sum-readout">Код (снизу вверх): <b id="l3-result">— — — — —</b></div>
+
+      <div class="row-btns">
+        <button class="hint-btn" id="l3-hint">🔍 Подсказка (−15 очков)</button>
+        <button class="btn reset" id="l3-reset">↺ Сбросить</button>
+      </div>
+      <div class="hint-text" id="l3-hint-text">19 = 16 + 2 + 1 → двоичный код 10011.</div>
+      <div class="feedback" id="l3-fb"></div>
+      <div class="row-btns">
+        <button class="btn primary" id="l3-check">Проверить</button>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- УРОВЕНЬ 4 -->
+  <section class="screen" id="s-4">
+    <div class="win">
+      <div class="titlebar"><span>🛠️ Уровень 4 — Взлом сервера</span><div class="wbtns"><span>_</span><span>□</span><span>×</span></div></div>
+      <div class="winbody">
+      <div class="lvl-tag">УРОВЕНЬ 4 / 10</div>
+      <h2 class="lvl-title">Сложение в двоичной системе</h2>
+
+      <details class="spoiler" open>
+        <summary>Теория: сложение столбиком</summary>
+        <div class="body">
+          В десятичной системе при сложении столбиком, если сумма разряда 10 или больше,
+          мы пишем младшую цифру, а единицу переносим в следующий разряд. Например, 7 + 5 = 12:
+          пишем 2, переносим 1.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Теория: четыре правила двоичного сложения</summary>
+        <div class="body">
+          В двоичной системе цифр всего две, поэтому «перебор» случается уже при 1 + 1:
+          <br><code>0 + 0 = 0</code>
+          <br><code>1 + 0 = 1</code>
+          <br><code>1 + 1 = 10</code> (пишем 0, переносим 1)
+          <br><code>1 + 1 + 1 = 11</code> (пишем 1, переносим 1)
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Пример: 0101 + 0111 поразрядно</summary>
+        <div class="body">
+          Складываем справа налево:<br>
+          Разряд 0: 1 + 1 = 10 → пишем 0, переносим 1<br>
+          Разряд 1: 0 + 1 + 1(перенос) = 10 → пишем 0, переносим 1<br>
+          Разряд 2: 1 + 1 + 1(перенос) = 11 → пишем 1, переносим 1<br>
+          Разряд 3: 0 + 0 + 1(перенос) = 1 → пишем 1, переноса нет<br>
+          Результат: <b>01100₂</b>. Проверка: 5 + 7 = 12 = 01100₂. Верно!
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Ключевая идея: перенос — это как в десятичной</summary>
+        <div class="body">
+          Логика та же, что при сложении в столбик в десятичной системе. Только «десяток»
+          набирается не при сумме 10, а уже при сумме 2.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Интересный факт: сумматор в процессоре</summary>
+        <div class="body">
+          Ровно эти четыре правила («сумматор на один разряд») лежат в основе арифметико-логического
+          устройства процессора: любое сложение чисел, даже огромных, компьютер выполняет,
+          повторяя эту простую операцию разряд за разрядом.
+        </div>
+      </details>
+
+      <div class="conclusion"><b>Вывод:</b> в двоичном сложении перенос в старший разряд случается уже при сумме 2.</div>
+
+      <div class="task-text">
+        Сложи <b>0101</b> + <b>0111</b>. Перетащи цифры результата (0 или 1) в ячейки справа налево.
+      </div>
+      <div class="adder">
+        <div class="line num">0101</div>
+        <div class="line num">+ 0111</div>
+        <div class="line" style="border-top:1px solid #999; padding-top:6px; margin-top:5px;">
+          <div class="result-slots" id="l4-slots"></div>
+        </div>
+      </div>
+      <div class="bit-pool" id="l4-pool"></div>
+
+      <div class="row-btns">
+        <button class="hint-btn" id="l4-hint">🔍 Подсказка (−20 очков)</button>
+        <button class="btn reset" id="l4-reset">↺ Сбросить</button>
+      </div>
+      <div class="hint-text" id="l4-hint-text">0101 + 0111 = 01100. Справа налево: 0, 0, 1, 1, 0.</div>
+      <div class="feedback" id="l4-fb"></div>
+      <div class="row-btns">
+        <button class="btn primary" id="l4-check">Проверить</button>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- УРОВЕНЬ 5 -->
+  <section class="screen" id="s-5">
+    <div class="win">
+      <div class="titlebar"><span>🗄️ Уровень 5 — Главный сейф</span><div class="wbtns"><span>_</span><span>□</span><span>×</span></div></div>
+      <div class="winbody">
+      <div class="lvl-tag">УРОВЕНЬ 5 / 10</div>
+      <h2 class="lvl-title">Шестнадцатеричная система</h2>
+
+      <details class="spoiler" open>
+        <summary>Теория: зачем ещё одна система</summary>
+        <div class="body">
+          Записывать байты длинными цепочками из 0 и 1 неудобно, поэтому придумали
+          <b>шестнадцатеричную систему</b>: 16 цифр — 0–9 и A–F.
+          Один разряд hex заменяет ровно 4 бита (половину байта): 0000 = 0, 0001 = 1 … 1010 = A, 1011 = B … 1111 = F.
+          Байт из 8 бит превращается всего в 2 hex-цифры.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Теория: таблица перевода 4 бит → hex</summary>
+        <div class="body">
+          <code>0000=0, 0001=1, 0010=2, 0011=3, 0100=4, 0101=5, 0110=6, 0111=7,
+          1000=8, 1001=9, 1010=A, 1011=B, 1100=C, 1101=D, 1110=E, 1111=F</code>.
+          Эту таблицу полезно запомнить или держать под рукой.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Пример: 0010 1010 → hex</summary>
+        <div class="body">
+          Разбиваем байт на две четвёрки: <code>0010</code> и <code>1010</code>.
+          <code>0010 = 2</code>, <code>1010 = A</code>. Ответ: <b>2A₁₆</b>.
+          Проверка: 2·16 + 10 = 32 + 10 = 42. А 00101010₂ = 32 + 8 + 2 = 42. Совпало!
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Ключевая идея: hex — это «сжатие» двоичного кода</summary>
+        <div class="body">
+          Шестнадцатеричная запись — это не отдельная система для счёта, а просто удобный способ
+          записать те же самые биты короче. 1 hex-цифра = 4 бита. 2 hex-цифры = 1 байт.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Интересный факт: где встречается hex</summary>
+        <div class="body">
+          Цвет на сайте вроде #FF7A00 — это три байта в hex (красный, зелёный, синий).
+          MAC-адрес сетевой карты, коды ошибок в программах, адреса памяти — везде используется
+          именно шестнадцатеричная запись, потому что она короче двоичной и легче читается человеком.
+        </div>
+      </details>
+
+      <div class="conclusion"><b>Вывод:</b> разбей байт на две четвёрки битов — переведи каждую четвёрку в hex-цифру по таблице.</div>
+
+      <div class="task-text">
+        Байт <b>0010 1010</b>. Перетащи нужные hex-цифры в две ячейки:
+        сначала для левой четвёрки (0010), потом для правой (1010).
+      </div>
+      <div class="dz-row" id="l5-pool"></div>
+      <div class="dz-row" id="l5-slots"></div>
+
+      <div class="row-btns">
+        <button class="hint-btn" id="l5-hint">🔍 Подсказка (−25 очков)</button>
+        <button class="btn reset" id="l5-reset">↺ Сбросить</button>
+      </div>
+      <div class="hint-text" id="l5-hint-text">0010 = 2, 1010 = A. Ответ: 2A.</div>
+      <div class="feedback" id="l5-fb"></div>
+      <div class="row-btns">
+        <button class="btn primary" id="l5-check">Открыть сейф</button>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- УРОВЕНЬ 6 -->
+  <section class="screen" id="s-6">
+    <div class="win">
+      <div class="titlebar"><span>🔢 Уровень 6 — Восьмеричный коридор</span><div class="wbtns"><span>_</span><span>□</span><span>×</span></div></div>
+      <div class="winbody">
+      <div class="lvl-tag">УРОВЕНЬ 6 / 10</div>
+      <h2 class="lvl-title">Восьмеричная система</h2>
+
+      <details class="spoiler" open>
+        <summary>Теория: система с основанием 8</summary>
+        <div class="body">
+          В восьмеричной системе всего 8 цифр: 0, 1, 2, 3, 4, 5, 6, 7. Веса разрядов — степени
+          восьмёрки: 1, 8, 64, 512... Каждый разряд «дороже» правого в 8 раз.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Теория: связь с двоичной — триады</summary>
+        <div class="body">
+          Поскольку 8 = 2³, каждая восьмеричная цифра заменяет ровно 3 бита (триаду).
+          Чтобы перевести двоичное число в восьмеричное, разбей его на тройки битов справа налево
+          и переведи каждую тройку в цифру 0–7.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Пример: 101 110₂ → восьмеричная</summary>
+        <div class="body">
+          Разбиваем справа налево: <code>101</code> и <code>110</code>.
+          <code>101₂ = 5</code>, <code>110₂ = 6</code>. Ответ: <b>56₈</b>.
+          Проверка: 5·8 + 6 = 46. И 101110₂ = 32 + 8 + 4 + 2 = 46. Верно!
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Ключевая идея: 3 бита = 1 восьмеричная цифра</summary>
+        <div class="body">
+          Восьмеричная система — это «сжатие» по 3 бита. Она короче двоичной, но длиннее
+          шестнадцатеричной (там 4 бита на цифру). Раньше её часто использовали в программировании.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Частая ошибка: разбивать слева направо</summary>
+        <div class="body">
+          Разбивать на триады нужно обязательно <b>справа налево</b>! Если слева не хватает битов
+          до полной тройки, добавь незначащие нули слева.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Интересный факт: права доступа в Unix</summary>
+        <div class="body">
+          В Linux права на файл записываются как три восьмеричные цифры, например <code>755</code>.
+          Каждая цифра — это права для владельца, группы и остальных: 4 = чтение, 2 = запись, 1 = запуск.
+        </div>
+      </details>
+
+      <div class="conclusion"><b>Вывод:</b> для перевода в 8-ю систему разбей двоичное число на тройки битов справа налево.</div>
+
+      <div class="task-text">
+        Переведи двоичное число <b>110101</b> в восьмеричную систему.
+        Разбей его на тройки битов справа налево и перетащи две восьмеричные цифры в ячейки.
+      </div>
+      <div class="dz-row" id="l6-pool"></div>
+      <div class="dz-row" id="l6-slots"></div>
+
+      <div class="row-btns">
+        <button class="hint-btn" id="l6-hint">🔍 Подсказка (−30 очков)</button>
+        <button class="btn reset" id="l6-reset">↺ Сбросить</button>
+      </div>
+      <div class="hint-text" id="l6-hint-text">Разбиваем 110101 на 110 и 101. 110₂ = 6, 101₂ = 5. Ответ: 65₈.</div>
+      <div class="feedback" id="l6-fb"></div>
+      <div class="row-btns">
+        <button class="btn primary" id="l6-check">Проверить</button>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- УРОВЕНЬ 7 -->
+  <section class="screen" id="s-7">
+    <div class="win">
+      <div class="titlebar"><span>🔐 Уровень 7 — Шифр для сейфа</span><div class="wbtns"><span>_</span><span>□</span><span>×</span></div></div>
+      <div class="winbody">
+      <div class="lvl-tag">УРОВЕНЬ 7 / 10</div>
+      <h2 class="lvl-title">Перевод из 10-й в 16-ю</h2>
+
+      <details class="spoiler" open>
+        <summary>Теория: деление на 16 с остатком</summary>
+        <div class="body">
+          Чтобы перевести десятичное число в шестнадцатеричное, делим его на 16 и записываем остатки.
+          Остатки могут быть от 0 до 15. Остатки 10–15 заменяем буквами A–F.
+          Читаем остатки <b>снизу вверх</b>.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Пример: переводим 255</summary>
+        <div class="body">
+          <code>255 ÷ 16 = 15</code>, остаток <b>15 = F</b><br>
+          <code>15 ÷ 16 = 0</code>, остаток <b>15 = F</b><br>
+          Читаем снизу вверх: <b>FF₁₆</b>. Проверка: 15·16 + 15 = 240 + 15 = 255. Верно!
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Ключевая идея: остаток 10–15 — это буквы</summary>
+        <div class="body">
+          Главное отличие от деления на 2 — остаток может быть больше 9. Не забывай заменять
+          его на букву: 10 = A, 11 = B, 12 = C, 13 = D, 14 = E, 15 = F.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Частая ошибка: забыть заменить остаток на букву</summary>
+        <div class="body">
+          Если остаток 12, нельзя писать «12» — это две цифры, а разряд hex вмещает только один
+          символ. Правильно: 12 = C.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Интересный факт: 256 = 100₁₆</summary>
+        <div class="body">
+          Число 256 в шестнадцатеричной системе — это 100₁₆. Красиво! А 65536 (2¹⁶) = 10000₁₆.
+          Такие «круглые» числа в hex встречаются при работе с памятью и цветом.
+        </div>
+      </details>
+
+      <div class="conclusion"><b>Вывод:</b> делим на 16 до нуля, остатки 10–15 заменяем на A–F, читаем снизу вверх.</div>
+
+      <div class="task-text">
+        Переведи число <b>200</b> в шестнадцатеричную систему. Перетащи две hex-цифры
+        в ячейки: левая — старший разряд, правая — младший.
+      </div>
+      <div class="dz-row" id="l7-pool"></div>
+      <div class="dz-row" id="l7-slots"></div>
+
+      <div class="row-btns">
+        <button class="hint-btn" id="l7-hint">🔍 Подсказка (−35 очков)</button>
+        <button class="btn reset" id="l7-reset">↺ Сбросить</button>
+      </div>
+      <div class="hint-text" id="l7-hint-text">200 ÷ 16 = 12 (остаток 8), 12 ÷ 16 = 0 (остаток 12 = C). Ответ: C8.</div>
+      <div class="feedback" id="l7-fb"></div>
+      <div class="row-btns">
+        <button class="btn primary" id="l7-check">Проверить</button>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- УРОВЕНЬ 8 -->
+  <section class="screen" id="s-8">
+    <div class="win">
+      <div class="titlebar"><span>➕ Уровень 8 — Hex-арифметика</span><div class="wbtns"><span>_</span><span>□</span><span>×</span></div></div>
+      <div class="winbody">
+      <div class="lvl-tag">УРОВЕНЬ 8 / 10</div>
+      <h2 class="lvl-title">Сложение в шестнадцатеричной системе</h2>
+
+      <details class="spoiler" open>
+        <summary>Теория: сложение по тем же правилам</summary>
+        <div class="body">
+          Складываем hex-числа столбиком, как обычные десятичные. Отличие одно: «перебор»
+          наступает при сумме 16, а не 10. Переносим 1 в следующий разряд, когда сумма ≥ 16.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Пример: 2A + 3F</summary>
+        <div class="body">
+          Складываем справа налево: A (10) + F (15) = 25. 25 ≥ 16, значит пишем 25 − 16 = 9,
+          переносим 1.<br>
+          Следующий разряд: 2 + 3 + 1(перенос) = 6.<br>
+          Результат: <b>69₁₆</b>. Проверка: 2A = 42, 3F = 63, 42 + 63 = 105 = 6·16 + 9 = 105. Верно!
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Ключевая идея: буквы — это числа</summary>
+        <div class="body">
+          Прежде чем складывать, замени буквы на числа: A = 10, B = 11, ..., F = 15.
+          После сложения, если результат — двузначное число, вычти 16 и запомни перенос.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Частая ошибка: путать 10 и 16</summary>
+        <div class="body">
+          В hex перенос наступает при 16, а не при 10! Если A + 5 = 15, переноса нет (15 < 16).
+          А вот A + 7 = 17 ≥ 16 — перенос есть.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Интересный факт: калькулятор Windows</summary>
+        <div class="body">
+          В калькуляторе Windows есть режим «Программист», где можно переключаться между
+          HEX, DEC, OCT и BIN — и он мгновенно переводит числа между системами.
+        </div>
+      </details>
+
+      <div class="conclusion"><b>Вывод:</b> в hex-сложении перенос в старший разряд случается при сумме 16.</div>
+
+      <div class="task-text">
+        Сложи <b>1B</b> + <b>2C</b>. Перетащи hex-цифры результата в две ячейки
+        (левая — старший разряд, правая — младший).
+      </div>
+      <div class="dz-row" id="l8-pool"></div>
+      <div class="dz-row" id="l8-slots"></div>
+
+      <div class="row-btns">
+        <button class="hint-btn" id="l8-hint">🔍 Подсказка (−40 очков)</button>
+        <button class="btn reset" id="l8-reset">↺ Сбросить</button>
+      </div>
+      <div class="hint-text" id="l8-hint-text">B(11) + C(12) = 23 → пишем 7, переносим 1. 1 + 2 + 1 = 4. Ответ: 47.</div>
+      <div class="feedback" id="l8-fb"></div>
+      <div class="row-btns">
+        <button class="btn primary" id="l8-check">Проверить</button>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- УРОВЕНЬ 9 -->
+  <section class="screen" id="s-9">
+    <div class="win">
+      <div class="titlebar"><span>🔀 Уровень 9 — Мост между системами</span><div class="wbtns"><span>_</span><span>□</span><span>×</span></div></div>
+      <div class="winbody">
+      <div class="lvl-tag">УРОВЕНЬ 9 / 10</div>
+      <h2 class="lvl-title">Перевод между 2, 8 и 16</h2>
+
+      <details class="spoiler" open>
+        <summary>Теория: триады и тетрады</summary>
+        <div class="body">
+          Мы уже знаем: 1 восьмеричная цифра = 3 бита (триада), 1 hex-цифра = 4 бита (тетрада).
+          Значит, чтобы перевести двоичное число в восьмеричное — разбиваем на тройки,
+          в шестнадцатеричное — на четвёрки. И наоборот: каждая 8-я или 16-я цифра
+          разворачивается в 3 или 4 бита.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Пример: 11010110₂ → 8-я и 16-я</summary>
+        <div class="body">
+          <b>В восьмеричную:</b> разбиваем справа налево на тройки: 11 | 010 | 110.
+          Слева не хватает бита — добавим 0: 011 | 010 | 110 → 3 | 2 | 6 → <b>326₈</b>.<br>
+          <b>В шестнадцатеричную:</b> разбиваем на четвёрки: 1101 | 0110 → D | 6 → <b>D6₁₆</b>.<br>
+          Проверка: 11010110₂ = 128 + 64 + 16 + 4 + 2 = 214. 326₈ = 3·64 + 2·8 + 6 = 214. D6₁₆ = 13·16 + 6 = 214. Всё сходится!
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Ключевая идея: перевод через двоичную</summary>
+        <div class="body">
+          Самый простой способ перевести из 8-й в 16-ю (или наоборот) — сначала перевести в двоичную,
+          а потом разбить на нужные группы битов. Это всегда работает.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Частая ошибка: не добавить нули слева</summary>
+        <div class="body">
+          Если при разбивке на группы слева не хватает битов, обязательно добавь незначащие нули
+          слева до полной группы. Без этого получится неверный результат.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Интересный факт: hex и oct в программировании</summary>
+        <div class="body">
+          В языках программирования числа в hex записывают с префиксом <code>0x</code> (например, 0xFF = 255),
+          а в восьмеричной — с <code>0</code> (например, 0755). Это наследие ранних языков, где нужно было
+          различать системы записи.
+        </div>
+      </details>
+
+      <div class="conclusion"><b>Вывод:</b> 2 → 8: разбей на тройки; 2 → 16: разбей на четвёрки. Слева дополни нулями при необходимости.</div>
+
+      <div class="task-text">
+        Переведи <b>10110111₂</b> в восьмеричную систему.
+        Разбей число на тройки битов справа налево (слева дополни нулями) и перетащи
+        три восьмеричные цифры в ячейки.
+      </div>
+      <div class="dz-row" id="l9-pool"></div>
+      <div class="dz-row" id="l9-slots"></div>
+
+      <div class="row-btns">
+        <button class="hint-btn" id="l9-hint">🔍 Подсказка (−45 очков)</button>
+        <button class="btn reset" id="l9-reset">↺ Сбросить</button>
+      </div>
+      <div class="hint-text" id="l9-hint-text">Дополняем слева: 010 | 110 | 111. 010₂ = 2, 110₂ = 6, 111₂ = 7. Ответ: 267₈.</div>
+      <div class="feedback" id="l9-fb"></div>
+      <div class="row-btns">
+        <button class="btn primary" id="l9-check">Проверить</button>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- УРОВЕНЬ 10 -->
+  <section class="screen" id="s-10">
+    <div class="win">
+      <div class="titlebar"><span>💬 Уровень 10 — Финальный шифр</span><div class="wbtns"><span>_</span><span>□</span><span>×</span></div></div>
+      <div class="winbody">
+      <div class="lvl-tag">УРОВЕНЬ 10 / 10</div>
+      <h2 class="lvl-title">Кодирование текста: ASCII и Unicode</h2>
+
+      <details class="spoiler" open>
+        <summary>Теория: как компьютер хранит буквы</summary>
+        <div class="body">
+          Компьютер не умеет хранить буквы — только числа. Чтобы сохранить текст, каждой букве,
+          цифре и знаку препинания присвоили свой номер. Самая известная таблица — <b>ASCII</b>.
+          В ней, например, заглавная <code>A</code> — это 65, строчная <code>a</code> — 97,
+          цифра <code>0</code> — 48, пробел — 32.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Теория: от ASCII к Unicode</summary>
+        <div class="body">
+          ASCII вмещает только 128 символов — хватает для латиницы и знаков, но не для кириллицы,
+          иероглифов и эмодзи. Поэтому придумали <b>Unicode</b> — таблицу, где каждому символу
+          любого языка мира присвоен свой номер. Русская <code>А</code> в Unicode — 1040,
+          а <code>Я</code> — 1071. В компьютере эти номера всё равно хранятся в двоичном виде.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Пример: кодируем букву Z</summary>
+        <div class="body">
+          Номер <code>Z</code> в ASCII = 90. Переведём 90 в двоичную:<br>
+          <code>90 ÷ 2 = 45</code>, остаток <b>0</b><br>
+          <code>45 ÷ 2 = 22</code>, остаток <b>1</b><br>
+          <code>22 ÷ 2 = 11</code>, остаток <b>0</b><br>
+          <code>11 ÷ 2 = 5</code>, остаток <b>1</b><br>
+          <code>5 ÷ 2 = 2</code>, остаток <b>1</b><br>
+          <code>2 ÷ 2 = 1</code>, остаток <b>0</b><br>
+          <code>1 ÷ 2 = 0</code>, остаток <b>1</b><br>
+          Читаем снизу вверх: <b>1011010₂</b>. Проверка: 64 + 16 + 8 + 2 = 90. Верно!
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Ключевая идея: текст — это числа</summary>
+        <div class="body">
+          Любой текст в компьютере — это последовательность чисел (кодов символов), записанных
+          в двоичном виде. Зная таблицу кодировки, можно расшифровать сообщение.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Частая ошибка: путать коды A и a</summary>
+        <div class="body">
+          Заглавные и строчные буквы — это разные символы с разными кодами.
+          <code>A</code> = 65, <code>a</code> = 97. Разница ровно 32.
+        </div>
+      </details>
+
+      <details class="spoiler">
+        <summary>Интересный факт: в одном байте — целое слово</summary>
+        <div class="body">
+          Байт может хранить число от 0 до 255, а значит — любой символ ASCII.
+          Именно поэтому старые текстовые файлы занимали ровно 1 байт на символ.
+          Современные кодировки вроде UTF-8 тратят на русские буквы 2 байта, а на эмодзи — до 4.
+        </div>
+      </details>
+
+      <div class="conclusion"><b>Вывод:</b> текст кодируется числами, числа хранятся в двоичном виде. Знаешь код символа — знаешь его двоичную запись.</div>
+
+      <div class="task-text">
+        Расшифруй двоичный код <b>1000001</b>. Это номер символа в таблице ASCII.
+        Найди этот номер и выбери соответствующую букву.
+      </div>
+      <div class="dz-row" id="l10-pool"></div>
+      <div class="dz-row" id="l10-slots"></div>
+
+      <div class="row-btns">
+        <button class="hint-btn" id="l10-hint">🔍 Подсказка (−50 очков)</button>
+        <button class="btn reset" id="l10-reset">↺ Сбросить</button>
+      </div>
+      <div class="hint-text" id="l10-hint-text">1000001₂ = 64 + 1 = 65. В ASCII код 65 — это буква A.</div>
+      <div class="feedback" id="l10-fb"></div>
+      <div class="row-btns">
+        <button class="btn primary" id="l10-check">Завершить взлом</button>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ФИНАЛ -->
+  <section class="screen" id="s-final">
+    <div class="win cert" id="certWindow">
+      <div class="titlebar"><span>🏆 Доступ разрешён.exe</span><div class="wbtns"><span>_</span><span>□</span><span>×</span></div></div>
+      <div class="winbody">
+        <div class="stamp">🏆</div>
+        <div class="lvl-tag">ДОСТУП РАЗРЕШЁН</div>
+        <h2>Станция взломана!</h2>
+        <p style="color:#5a4400;">Позывной <b id="certName" style="color:#3a2a00;"></b> прошёл все десять уровней защиты.</p>
+        <p style="margin:16px 0 5px;">Итоговый счёт: <b id="certScore" style="color:var(--xp-accent2); font-size:1.4em;"></b></p>
+        <div id="rankBadge" class="rank-badge rank-novice">Новичок с потенциалом</div>
+        <div class="code" id="certCode"></div>
+        <canvas id="certCanvas" width="900" height="600"></canvas>
+        <img class="cert-preview" id="certPreview" alt="Сертификат">
+        <div class="bonus-hint" id="bonusHint">— бонусный уровень —</div>
+        <div class="maze-wrap" id="mazeWrap">
+          <canvas id="mazeCanvas" width="480" height="480"></canvas>
+          <div class="maze-controls">Управление: стрелки / WASD / свайпы</div>
+          <div class="maze-dpad" id="mazeDpad">
+            <button class="dpad-up" data-dir="up">▲</button>
+            <button class="dpad-left" data-dir="left">◀</button>
+            <button class="dpad-down" data-dir="down">▼</button>
+            <button class="dpad-right" data-dir="right">▶</button>
+          </div>
+          <div class="maze-win" id="mazeWin">
+            <h3>🏁 Лабиринт пройден!</h3>
+            <p style="font-weight:bold; font-size:1.1em;">Отправь этот скриншот преподавателю и тебе поставят дополнительную оценку</p>
+            <p style="font-size:0.9em; opacity:0.85;">Сделай скриншот своего экрана: <b>PrtSc</b> или <b>Win + Shift + S</b> (Windows), <b>Cmd + Shift + 4</b> (macOS).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row-btns" style="justify-content:center;">
+      <button class="btn primary" id="downloadCertBtn">💾 Скачать сертификат (PNG)</button>
+      <button class="btn secondary" id="restartBtn">Пройти заново</button>
+    </div>
+  </section>
+
+  <footer class="note">Прогресс сохраняется автоматически в этом браузере — можно закрыть вкладку и вернуться позже.</footer>
+</div>
+
+<div class="taskbar">
+  <div class="start-btn" id="startBtnTask">⊞ Пуск</div>
+  <div class="task-current" id="taskCurrent">Код тайного шифра</div>
+  <button class="task-sound" id="soundToggle">🔊</button>
+  <div class="task-clock" id="taskClock">00:00</div>
+</div>
+
+<div class="start-menu" id="startMenu">
+  <div class="sm-header">Станция «Горизонт-9»</div>
+  <button class="sm-item" id="smAbout">📄 О программе</button>
+  <button class="sm-item" id="smSecret">🔮 Секрет</button>
+  <div class="sm-sep"></div>
+  <button class="sm-item" id="smClose">✖ Закрыть</button>
+</div>
+
+<div class="bsod" id="bsod">
+  <div class="bsod-h">SYSTEM ERROR</div>
+  <p>A problem has been detected and Windows has been shut down to prevent damage to your computer.</p>
+  <p>HEX_NOT_FOUND_IN_BINARY_SYSTEM</p>
+  <p>If this is the first time you've seen this Stop error screen, restart your computer. If this screen appears again, follow these steps:</p>
+  <p>Check to make sure any new hardware or software is properly installed.</p>
+  <p class="blink">_</p>
+</div>
+
+<div class="eye" id="eye">👁️</div>
+<div class="speedrun-badge" id="speedrunBadge"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script>
+(function(){
+  "use strict";
+  var LS_KEY = "hexquest_state_v5";
+  var LEVELS = ["onboard","1","2","3","4","5","6","7","8","9","10","final"];
+  var LEVEL_NAMES = {
+    onboard:"Вход в систему",
+    "1":"Уровень 1 — Тумблеры",
+    "2":"Уровень 2 — Дешифровка",
+    "3":"Уровень 3 — Собери шифр",
+    "4":"Уровень 4 — Взлом сервера",
+    "5":"Уровень 5 — Главный сейф",
+    "6":"Уровень 6 — Восьмеричный коридор",
+    "7":"Уровень 7 — Шифр для сейфа",
+    "8":"Уровень 8 — Hex-арифметика",
+    "9":"Уровень 9 — Мост между системами",
+    "10":"Уровень 10 — Финальный шифр",
+    final:"Станция взломана"
+  };
+  var state = load() || {nick:"", avatar:"", score:0, level:"onboard"};
+
+  function load(){ try{ var raw = localStorage.getItem(LS_KEY); return raw ? JSON.parse(raw) : null; }catch(e){ return null; } }
+  function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
+
+  function showScreen(id){
+    document.querySelectorAll(".screen").forEach(function(s){ s.classList.remove("active"); });
+    var el = document.getElementById("s-"+id);
+    if(el) el.classList.add("active");
+    state.level = id;
+    save();
+    updateTopbar();
+    window.scrollTo({top:0, behavior:"smooth"});
+    var wb = el ? el.querySelector(".winbody") : null;
+    if(wb) wb.scrollTop = 0;
+  }
+
+  function updateTopbar(){
+    var top = document.getElementById("topbar");
+    document.getElementById("taskCurrent").textContent = LEVEL_NAMES[state.level] || "Код тайного шифра";
+    if(state.level === "onboard"){ top.style.display="none"; return; }
+    top.style.display="block";
+    document.getElementById("whoTag").textContent = (state.avatar||"🛰️") + " " + (state.nick||"Хакер");
+    document.getElementById("scoreTag").textContent = state.score;
+    var idx = LEVELS.indexOf(state.level);
+    if(idx < 0) idx = 0;
+    var pct = Math.max(0, Math.min(100, (idx / (LEVELS.length-1)) * 100));
+    document.getElementById("progFill").style.width = pct + "%";
+  }
+
+  function addScore(n){ state.score = Math.max(0, state.score + n); save(); updateTopbar(); }
+
+  function tickClock(){
+    var d = new Date();
+    var h = (""+d.getHours()).padStart(2,"0"), m = (""+d.getMinutes()).padStart(2,"0");
+    document.getElementById("taskClock").textContent = h+":"+m;
+  }
+  tickClock(); setInterval(tickClock, 15000);
+
+  var soundOn = true;
+  var actx = null;
+  function ctx(){ if(!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return actx; }
+  function tone(freq, start, dur, type, vol){
+    var c = ctx(); if(!c || !soundOn) return;
+    var osc = c.createOscillator(), gain = c.createGain();
+    osc.type = type || "square"; osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, c.currentTime + start);
+    gain.gain.linearRampToValueAtTime(vol||0.12, c.currentTime + start + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + start + dur);
+    osc.connect(gain); gain.connect(c.destination);
+    osc.start(c.currentTime + start); osc.stop(c.currentTime + start + dur + 0.02);
+  }
+  function sndClick(){ tone(720, 0, 0.05, "square", 0.08); }
+  function sndOk(){ tone(523,0,0.12,"triangle",0.14); tone(659,0.1,0.12,"triangle",0.14); tone(784,0.2,0.2,"triangle",0.16); }
+  function sndBad(){ tone(180,0,0.16,"sawtooth",0.12); tone(140,0.12,0.22,"sawtooth",0.12); }
+  function sndFanfare(){
+    [523,659,784,1046].forEach(function(f,i){ tone(f, i*0.14, 0.22, "triangle", 0.15); });
+    tone(1318, 0.56, 0.4, "triangle", 0.16);
+  }
+  function sndStep(){ tone(880, 0, 0.04, "square", 0.06); }
+  function sndWin(){ [659,784,988,1318].forEach(function(f,i){ tone(f, i*0.1, 0.18, "triangle", 0.16); }); }
+  function sndDisco(){
+    var mel = [392,523,659,523,392,523,659,784,659,523,392,330,392,523,659,784];
+    mel.forEach(function(f,i){ tone(f, i*0.13, 0.13, "square", 0.13); });
+  }
+
+  var soundBtn = document.getElementById("soundToggle");
+  var soundClickTimer = null;
+  soundBtn.addEventListener("click", function(){
+    if(soundClickTimer){ 
+      clearTimeout(soundClickTimer); soundClickTimer = null;
+      sndDisco();
+      return;
+    }
+    soundClickTimer = setTimeout(function(){
+      soundClickTimer = null;
+      soundOn = !soundOn;
+      soundBtn.textContent = soundOn ? "🔊" : "🔇";
+      if(soundOn) tone(600,0,0.05,"square",0.08);
+    }, 260);
+  });
+
+  function makeDraggable(chip, onDrop){
+    chip.style.touchAction = "none";
+    chip.addEventListener("pointerdown", function(e){
+      if(chip.dataset.used === "1") return;
+      e.preventDefault();
+      var startX = e.clientX, startY = e.clientY;
+      var rect = chip.getBoundingClientRect();
+      var clone = chip.cloneNode(true);
+      clone.style.position="fixed"; clone.style.left=rect.left+"px"; clone.style.top=rect.top+"px";
+      clone.style.width=rect.width+"px"; clone.style.zIndex=999; clone.style.pointerEvents="none";
+      clone.style.boxShadow="2px 2px 8px rgba(0,0,0,.5)";
+      document.body.appendChild(clone);
+      chip.classList.add("ghost-dragging");
+
+      function move(ev){
+        var dx = ev.clientX - startX, dy = ev.clientY - startY;
+        clone.style.transform = "translate("+dx+"px,"+dy+"px)";
+      }
+      function up(ev){
+        document.removeEventListener("pointermove", move);
+        document.removeEventListener("pointerup", up);
+        clone.style.display="none";
+        var target = document.elementFromPoint(ev.clientX, ev.clientY);
+        clone.remove();
+        chip.classList.remove("ghost-dragging");
+        var dz = target ? target.closest(".dz,.weight-slot,.rem-slot,.res-slot") : null;
+        if(dz && !dz.classList.contains("filled")){
+          onDrop(chip, dz);
+          if(chip.dataset.used === "1") sndClick();
+        }
+      }
+      document.addEventListener("pointermove", move);
+      document.addEventListener("pointerup", up);
+    });
+  }
+
+  var nickInput = document.getElementById("nickInput");
+  var startBtn = document.getElementById("startBtn");
+  nickInput.value = state.nick || "";
+  function checkStart(){ startBtn.disabled = !(nickInput.value.trim() && state.avatar); }
+  nickInput.addEventListener("input", function(){ state.nick = nickInput.value.trim(); checkStart(); });
+  document.querySelectorAll("#avatarPick button").forEach(function(b){
+    if(b.dataset.a === state.avatar) b.classList.add("picked");
+    b.addEventListener("click", function(){
+      document.querySelectorAll("#avatarPick button").forEach(function(x){x.classList.remove("picked");});
+      b.classList.add("picked"); state.avatar = b.dataset.a; checkStart();
+    });
+  });
+  startBtn.addEventListener("click", function(){ save(); showScreen("1"); trackSpeedrunStart(); });
+
+  function feedback(id, ok, msg){
+    var el = document.getElementById(id);
+    el.className = "feedback show " + (ok?"ok":"bad");
+    el.textContent = msg;
+  }
+  function clearFeedback(id){ var el = document.getElementById(id); el.className="feedback"; el.textContent=""; }
+  function hintBtn(id, textId, cost){
+    var btn = document.getElementById(id);
+    if(!btn) return;
+    btn.addEventListener("click", function(){
+      document.getElementById(textId).classList.add("show");
+      btn.disabled = true;
+      addScore(-cost);
+    });
+  }
+  function resetHint(id, textId){
+    var el = document.getElementById(textId);
+    if(el) el.classList.remove("show");
+    var btn = document.getElementById(id); if(btn) btn.disabled = false;
+  }
+  function award(level, pointsIfNoHint){
+    var hintEl = document.getElementById("l"+level+"-hint-text");
+    var hintShown = hintEl && hintEl.classList.contains("show");
+    addScore(hintShown ? Math.round(pointsIfNoHint/2) : pointsIfNoHint);
+  }
+
+  function checkHitchhiker(val, feedbackId){
+    if(val === "42"){
+      feedback(feedbackId, false, "Ответ на главный вопрос жизни, Вселенной и всего такого. Но замок требует другое число. 😉");
+      sndBad();
+      return true;
+    }
+    return false;
+  }
+
+  var speedrunStartTime = 0;
+  var speedrunDone = false;
+  function trackSpeedrunStart(){ speedrunStartTime = Date.now(); speedrunDone = false; }
+  function checkSpeedrun(){
+    if(speedrunDone) return;
+    if(speedrunStartTime && Date.now() - speedrunStartTime < 30000){
+      speedrunDone = true;
+      var b = document.getElementById("speedrunBadge");
+      b.classList.add("show");
+      sndFanfare();
+      addScore(5);
+      setTimeout(function(){ b.classList.remove("show"); }, 2200);
+    }
+  }
+
+  var l3WrongStreak = 0;
+  function triggerBSOD(){
+    var b = document.getElementById("bsod");
+    b.classList.add("show");
+    setTimeout(function(){ b.classList.remove("show"); l3WrongStreak = 0; }, 2200);
+  }
+
+  var idleTimer = null;
+  var eyeEl = document.getElementById("eye");
+  function resetIdle(){
+    clearTimeout(idleTimer);
+    eyeEl.classList.remove("show");
+    idleTimer = setTimeout(function(){
+      eyeEl.classList.add("show");
+      setTimeout(function(){ eyeEl.classList.remove("show"); }, 3500);
+    }, 180000);
+  }
+  ["pointerdown","keydown","touchstart","wheel"].forEach(function(ev){
+    document.addEventListener(ev, resetIdle, {passive:true});
+  });
+  resetIdle();
+
+  var startMenu = document.getElementById("startMenu");
+  document.getElementById("startBtnTask").addEventListener("click", function(e){
+    e.stopPropagation();
+    startMenu.classList.toggle("open");
+  });
+  document.addEventListener("click", function(e){
+    if(!startMenu.contains(e.target)) startMenu.classList.remove("open");
+  });
+  document.getElementById("smClose").addEventListener("click", function(){ startMenu.classList.remove("open"); });
+  document.getElementById("smAbout").addEventListener("click", function(){
+    startMenu.classList.remove("open");
+    alert("Станция «Горизонт-9»\nКвест по системам счисления\nОЗУ: 640 КБ (хватит каждому)\nРазработчик: неизвестный хакер");
+  });
+  document.getElementById("smSecret").addEventListener("click", function(){
+    startMenu.classList.remove("open");
+    triggerKonami();
+  });
+
+  var konami = [38,38,40,40,37,39,37,39,66,65], kpos = 0;
+  var konamiTriggered = false;
+  document.addEventListener("keydown", function(e){
+    if(e.keyCode === konami[kpos]){
+      kpos++;
+      if(kpos === konami.length){
+        kpos = 0;
+        triggerKonami();
+      }
+    } else { kpos = 0; }
+  });
+  function triggerKonami(){
+    if(konamiTriggered) return;
+    konamiTriggered = true;
+    sndFanfare();
+    addScore(50);
+    document.body.style.transition = "filter 0.4s";
+    document.body.style.filter = "hue-rotate(0deg)";
+    var start = Date.now();
+    var iv = setInterval(function(){
+      var t = (Date.now() - start) / 1000;
+      document.body.style.filter = "hue-rotate(" + (t*180) + "deg)";
+      if(t > 5){ clearInterval(iv); document.body.style.filter = ""; }
+    }, 60);
+    setTimeout(function(){
+      alert("🎉 Награда ветерана: +50 очков!\nТы знаешь код Konami.");
+    }, 600);
+  }
+
+  // УРОВЕНЬ 1
+  var L1_WEIGHTS = [128,64,32,16,8,4,2,1];
+  var l1PlacedWeights, l1On;
+  function initL1(){
+    l1PlacedWeights = {}; l1On = {};
+    var pool = document.getElementById("l1-pool"); pool.innerHTML="";
+    var rack = document.getElementById("l1-rack"); rack.innerHTML="";
+    var shuffled = L1_WEIGHTS.slice().sort(function(){return Math.random()-.5;});
+    shuffled.forEach(function(w){
+      var chip = document.createElement("div");
+      chip.className="chip"; chip.textContent=w; chip.dataset.w=w;
+      pool.appendChild(chip);
+      makeDraggable(chip, function(c, dz){
+        if(dz.classList.contains("weight-slot") && !dz.dataset.filled){
+          dz.textContent = c.dataset.w; dz.classList.add("filled"); dz.dataset.filled="1";
+          l1PlacedWeights[dz.dataset.idx] = parseInt(c.dataset.w,10);
+          c.dataset.used="1"; c.style.opacity=.25; c.style.pointerEvents="none";
+        }
+      });
+    });
+    L1_WEIGHTS.forEach(function(w, i){
+      var col = document.createElement("div"); col.className="bit-col";
+      var slot = document.createElement("div"); slot.className="weight-slot"; slot.textContent="?"; slot.dataset.idx=i;
+      var tog = document.createElement("div"); tog.className="toggle"; tog.dataset.idx=i;
+      var knob = document.createElement("div"); knob.className="knob"; tog.appendChild(knob);
+      tog.addEventListener("click", function(){
+        l1On[i] = !l1On[i];
+        tog.classList.toggle("on", l1On[i]);
+        sndClick();
+        recalcL1();
+      });
+      col.appendChild(slot); col.appendChild(tog); rack.appendChild(col);
+    });
+    recalcL1();
+  }
+  function recalcL1(){
+    var sum=0;
+    Object.keys(l1On).forEach(function(i){
+      if(l1On[i] && l1PlacedWeights[i]) sum += l1PlacedWeights[i];
+    });
+    document.getElementById("l1-sum").textContent = sum;
+  }
+  initL1();
+  hintBtn("l1-hint","l1-hint-text",5);
+  document.getElementById("l1-reset").addEventListener("click", function(){
+    initL1(); clearFeedback("l1-fb"); resetHint("l1-hint","l1-hint-text");
+  });
+  document.getElementById("l1-check").addEventListener("click", function(){
+    var allPlaced = Object.keys(l1PlacedWeights).length === 8;
+    if(!allPlaced){ feedback("l1-fb", false, "Сначала расставь все веса по ячейкам."); return; }
+    var sum = parseInt(document.getElementById("l1-sum").textContent,10);
+    if(sum === 13){
+      sndOk();
+      feedback("l1-fb", true, "Замок открыт! 13 = 8 + 4 + 1.");
+      award(1, 20);
+      checkSpeedrun();
+      setTimeout(function(){ showScreen("2"); }, 900);
+    } else {
+      sndBad();
+      feedback("l1-fb", false, "Пока не то. Сумма включённых весов должна быть 13. Можно нажать «Сбросить» и начать заново.");
+    }
+  });
+
+  // УРОВЕНЬ 2
+  var L2_BITS = [0,1,0,0,1,0,0,0];
+  var L2_WEIGHTS = [128,64,32,16,8,4,2,1];
+  function initL2(){
+    var pool = document.getElementById("l2-pool"); pool.innerHTML="";
+    var row = document.getElementById("l2-row"); row.innerHTML="";
+    document.getElementById("l2-answer").value="";
+    var needed = L2_WEIGHTS.filter(function(w,i){return L2_BITS[i]===1;});
+    var extra = [32,16];
+    var chips = needed.concat(extra).sort(function(){return Math.random()-.5;});
+    chips.forEach(function(w){
+      var chip=document.createElement("div"); chip.className="chip"; chip.textContent=w; chip.dataset.w=w;
+      pool.appendChild(chip);
+      makeDraggable(chip, function(c,dz){
+        if(!dz.classList.contains("filled")){
+          var idx = parseInt(dz.dataset.idx,10);
+          if(L2_BITS[idx]===1 && parseInt(c.dataset.w,10)===L2_WEIGHTS[idx]){
+            dz.textContent=c.dataset.w; dz.classList.add("filled");
+            c.dataset.used="1"; c.style.opacity=.25; c.style.pointerEvents="none";
+          } else {
+            dz.style.borderColor="#c33";
+            setTimeout(function(){dz.style.borderColor="";},400);
+          }
+        }
+      });
+    });
+    L2_BITS.forEach(function(b,i){
+      var dz = document.createElement("div"); dz.className="dz"; dz.dataset.idx=i;
+      dz.textContent = b===1 ? "" : "0";
+      if(b===0) dz.style.opacity=.4;
+      row.appendChild(dz);
+    });
+  }
+  initL2();
+  hintBtn("l2-hint","l2-hint-text",10);
+  document.getElementById("l2-reset").addEventListener("click", function(){
+    initL2(); clearFeedback("l2-fb"); resetHint("l2-hint","l2-hint-text");
+  });
+  document.getElementById("l2-check").addEventListener("click", function(){
+    var val = document.getElementById("l2-answer").value.trim();
+    if(checkHitchhiker(val, "l2-fb")) return;
+    if(val === "72"){
+      sndOk();
+      feedback("l2-fb", true, "Верно! 64 + 8 = 72 — сообщение расшифровано.");
+      award(2, 20);
+      setTimeout(function(){ showScreen("3"); }, 900);
+    } else {
+      sndBad();
+      feedback("l2-fb", false, "Не сходится. Сложи веса тех разрядов, где расставлены цифры, либо нажми «Сбросить».");
+    }
+  });
+
+  // УРОВЕНЬ 3
+  var L3_STEPS = [
+    {q:"19 ÷ 2 = 9", r:1}, {q:"9 ÷ 2 = 4", r:1}, {q:"4 ÷ 2 = 2", r:0}, {q:"2 ÷ 2 = 1", r:0}, {q:"1 ÷ 2 = 0", r:1}
+  ];
+  var l3Values;
+  function initL3(){
+    l3Values = new Array(L3_STEPS.length).fill(null);
+    var pool = document.getElementById("l3-pool"); pool.innerHTML="";
+    var ladder = document.getElementById("l3-ladder"); ladder.innerHTML="";
+    [0,1,0,1,0,1].forEach(function(v){
+      var chip=document.createElement("div"); chip.className="chip"; chip.textContent=v; chip.dataset.v=v;
+      pool.appendChild(chip);
+      makeDraggable(chip, function(c,dz){
+        if(!dz.classList.contains("filled")){
+          dz.textContent=c.dataset.v; dz.parentElement.classList.add("filled");
+          var idx=parseInt(dz.dataset.idx,10);
+          l3Values[idx]=parseInt(c.dataset.v,10);
+          c.dataset.used="1"; c.style.opacity=.25; c.style.pointerEvents="none";
+          updateL3Result();
+        }
+      });
+    });
+    L3_STEPS.forEach(function(s,i){
+      var rung = document.createElement("div"); rung.className="rung";
+      var eq = document.createElement("div"); eq.className="eq"; eq.textContent=s.q+", остаток:";
+      var slot = document.createElement("div"); slot.className="rem-slot"; slot.dataset.idx=i;
+      rung.appendChild(eq); rung.appendChild(slot); ladder.appendChild(rung);
+    });
+    updateL3Result();
+  }
+  function updateL3Result(){
+    var res = l3Values.slice().reverse().map(function(v){ return v===null? "—" : v; });
+    document.getElementById("l3-result").textContent = res.join(" ");
+  }
+  initL3();
+  hintBtn("l3-hint","l3-hint-text",15);
+  document.getElementById("l3-reset").addEventListener("click", function(){
+    initL3(); clearFeedback("l3-fb"); resetHint("l3-hint","l3-hint-text");
+  });
+  document.getElementById("l3-check").addEventListener("click", function(){
+    if(l3Values.includes(null)){ feedback("l3-fb", false, "Заполни все ступени лестницы."); return; }
+    var code = l3Values.slice().reverse().join("");
+    if(code === "10011"){
+      sndOk();
+      feedback("l3-fb", true, "Точно! 19 в двоичной системе — 10011.");
+      award(3, 20);
+      l3WrongStreak = 0;
+      setTimeout(function(){ showScreen("4"); }, 900);
+    } else {
+      sndBad();
+      feedback("l3-fb", false, "Код не совпадает. Проверь остатки на каждой ступени или нажми «Сбросить».");
+      l3WrongStreak++;
+      if(l3WrongStreak >= 5) triggerBSOD();
+    }
+  });
+
+  // УРОВЕНЬ 4
+  var L4_ANSWER = [0,1,1,0,0];
+  var l4Slots;
+  function initL4(){
+    l4Slots = new Array(5).fill(null);
+    var slotsEl = document.getElementById("l4-slots"); slotsEl.innerHTML="";
+    var pool = document.getElementById("l4-pool"); pool.innerHTML="";
+    for(var i=0;i<5;i++){
+      var s = document.createElement("div"); s.className="res-slot"; s.dataset.idx=i; s.textContent="";
+      slotsEl.appendChild(s);
+    }
+    [0,1,0,1,1,0].forEach(function(v){
+      var chip=document.createElement("div"); chip.className="chip"; chip.textContent=v; chip.dataset.v=v;
+      pool.appendChild(chip);
+      makeDraggable(chip, function(c,dz){
+        if(dz.classList.contains("res-slot") && !dz.classList.contains("filled")){
+          dz.textContent=c.dataset.v; dz.classList.add("filled");
+          l4Slots[parseInt(dz.dataset.idx,10)] = parseInt(c.dataset.v,10);
+          c.dataset.used="1"; c.style.opacity=.25; c.style.pointerEvents="none";
+        }
+      });
+    });
+  }
+  initL4();
+  hintBtn("l4-hint","l4-hint-text",20);
+  document.getElementById("l4-reset").addEventListener("click", function(){
+    initL4(); clearFeedback("l4-fb"); resetHint("l4-hint","l4-hint-text");
+  });
+  document.getElementById("l4-check").addEventListener("click", function(){
+    if(l4Slots.includes(null)){ feedback("l4-fb", false, "Заполни все пять ячеек результата."); return; }
+    if(l4Slots.join("") === L4_ANSWER.join("")){
+      sndOk();
+      feedback("l4-fb", true, "Верно! 0101 + 0111 = 01100.");
+      award(4, 20);
+      setTimeout(function(){ showScreen("5"); }, 900);
+    } else {
+      sndBad();
+      feedback("l4-fb", false, "Есть ошибка в переносе. Сложи справа налево: 1+1=10 (перенос), или нажми «Сбросить».");
+    }
+  });
+
+  // УРОВЕНЬ 5
+  var L5_ANSWER = ["2","A"];
+  var l5Slots;
+  function initL5(){
+    l5Slots = [null,null];
+    var slotsEl = document.getElementById("l5-slots"); slotsEl.innerHTML="";
+    var pool = document.getElementById("l5-pool"); pool.innerHTML="";
+    ["0010","1010"].forEach(function(bits,i){
+      var dz = document.createElement("div"); dz.className="dz hexcard"; dz.dataset.idx=i;
+      var hint = document.createElement("div"); hint.className="weight-hint"; hint.textContent = bits;
+      dz.appendChild(hint);
+      slotsEl.appendChild(dz);
+    });
+    ["2","A","4","8","F","0"].sort(function(){return Math.random()-.5;}).forEach(function(h){
+      var chip=document.createElement("div"); chip.className="chip"; chip.textContent=h; chip.dataset.h=h;
+      pool.appendChild(chip);
+      makeDraggable(chip, function(c,dz){
+        if(dz.classList.contains("hexcard") && !dz.classList.contains("filled")){
+          dz.childNodes[0].textContent = c.dataset.h;
+          dz.classList.add("filled");
+          l5Slots[parseInt(dz.dataset.idx,10)] = c.dataset.h;
+          c.dataset.used="1"; c.style.opacity=.25; c.style.pointerEvents="none";
+        }
+      });
+    });
+  }
+  initL5();
+  hintBtn("l5-hint","l5-hint-text",25);
+  document.getElementById("l5-reset").addEventListener("click", function(){
+    initL5(); clearFeedback("l5-fb"); resetHint("l5-hint","l5-hint-text");
+  });
+  document.getElementById("l5-check").addEventListener("click", function(){
+    if(l5Slots.includes(null)){ feedback("l5-fb", false, "Заполни обе ячейки hex-кода."); return; }
+    if(l5Slots.join("") === L5_ANSWER.join("")){
+      sndOk();
+      feedback("l5-fb", true, "Сейф открыт! Байт 00101010 = 2A в hex.");
+      award(5, 20);
+      setTimeout(function(){ showScreen("6"); }, 900);
+    } else {
+      sndBad();
+      feedback("l5-fb", false, "Не совпадает. Переведи каждую четвёрку бит по таблице 0000–1111 → 0–F, или нажми «Сбросить».");
+    }
+  });
+
+  // УРОВЕНЬ 6
+  var L6_ANSWER = ["6","5"];
+  var l6Slots;
+  function initL6(){
+    l6Slots = [null,null];
+    var slotsEl = document.getElementById("l6-slots"); slotsEl.innerHTML="";
+    var pool = document.getElementById("l6-pool"); pool.innerHTML="";
+    ["110","101"].forEach(function(bits,i){
+      var dz = document.createElement("div"); dz.className="dz hexcard"; dz.dataset.idx=i;
+      var hint = document.createElement("div"); hint.className="weight-hint"; hint.textContent = bits;
+      dz.appendChild(hint);
+      slotsEl.appendChild(dz);
+    });
+    ["6","5","3","7","4","0"].sort(function(){return Math.random()-.5;}).forEach(function(h){
+      var chip=document.createElement("div"); chip.className="chip"; chip.textContent=h; chip.dataset.h=h;
+      pool.appendChild(chip);
+      makeDraggable(chip, function(c,dz){
+        if(dz.classList.contains("hexcard") && !dz.classList.contains("filled")){
+          dz.childNodes[0].textContent = c.dataset.h;
+          dz.classList.add("filled");
+          l6Slots[parseInt(dz.dataset.idx,10)] = c.dataset.h;
+          c.dataset.used="1"; c.style.opacity=.25; c.style.pointerEvents="none";
+        }
+      });
+    });
+  }
+  initL6();
+  hintBtn("l6-hint","l6-hint-text",30);
+  document.getElementById("l6-reset").addEventListener("click", function(){
+    initL6(); clearFeedback("l6-fb"); resetHint("l6-hint","l6-hint-text");
+  });
+  document.getElementById("l6-check").addEventListener("click", function(){
+    if(l6Slots.includes(null)){ feedback("l6-fb", false, "Заполни обе ячейки."); return; }
+    if(l6Slots.join("") === L6_ANSWER.join("")){
+      sndOk();
+      feedback("l6-fb", true, "Верно! 110101₂ = 65₈.");
+      award(6, 20);
+      setTimeout(function(){ showScreen("7"); }, 900);
+    } else {
+      sndBad();
+      feedback("l6-fb", false, "Не совпадает. Разбей на триады справа налево: 110 и 101.");
+    }
+  });
+
+  // УРОВЕНЬ 7
+  var L7_ANSWER = ["C","8"];
+  var l7Slots;
+  function initL7(){
+    l7Slots = [null,null];
+    var slotsEl = document.getElementById("l7-slots"); slotsEl.innerHTML="";
+    var pool = document.getElementById("l7-pool"); pool.innerHTML="";
+    ["старший разряд","младший разряд"].forEach(function(label,i){
+      var dz = document.createElement("div"); dz.className="dz hexcard"; dz.dataset.idx=i;
+      var hint = document.createElement("div"); hint.className="weight-hint"; hint.textContent = label;
+      dz.appendChild(hint);
+      slotsEl.appendChild(dz);
+    });
+    ["C","8","A","F","2","5"].sort(function(){return Math.random()-.5;}).forEach(function(h){
+      var chip=document.createElement("div"); chip.className="chip"; chip.textContent=h; chip.dataset.h=h;
+      pool.appendChild(chip);
+      makeDraggable(chip, function(c,dz){
+        if(dz.classList.contains("hexcard") && !dz.classList.contains("filled")){
+          dz.childNodes[0].textContent = c.dataset.h;
+          dz.classList.add("filled");
+          l7Slots[parseInt(dz.dataset.idx,10)] = c.dataset.h;
+          c.dataset.used="1"; c.style.opacity=.25; c.style.pointerEvents="none";
+        }
+      });
+    });
+  }
+  initL7();
+  hintBtn("l7-hint","l7-hint-text",35);
+  document.getElementById("l7-reset").addEventListener("click", function(){
+    initL7(); clearFeedback("l7-fb"); resetHint("l7-hint","l7-hint-text");
+  });
+  document.getElementById("l7-check").addEventListener("click", function(){
+    if(l7Slots.includes(null)){ feedback("l7-fb", false, "Заполни обе ячейки."); return; }
+    if(l7Slots.join("") === L7_ANSWER.join("")){
+      sndOk();
+      feedback("l7-fb", true, "Верно! 200 = C8₁₆.");
+      award(7, 20);
+      setTimeout(function(){ showScreen("8"); }, 900);
+    } else {
+      sndBad();
+      feedback("l7-fb", false, "Не совпадает. 200 ÷ 16 = 12 (ост. 8), 12 = C, значит C8.");
+    }
+  });
+
+  // УРОВЕНЬ 8
+  var L8_ANSWER = ["4","7"];
+  var l8Slots;
+  function initL8(){
+    l8Slots = [null,null];
+    var slotsEl = document.getElementById("l8-slots"); slotsEl.innerHTML="";
+    var pool = document.getElementById("l8-pool"); pool.innerHTML="";
+    ["старший разряд","младший разряд"].forEach(function(label,i){
+      var dz = document.createElement("div"); dz.className="dz hexcard"; dz.dataset.idx=i;
+      var hint = document.createElement("div"); hint.className="weight-hint"; hint.textContent = label;
+      dz.appendChild(hint);
+      slotsEl.appendChild(dz);
+    });
+    ["4","7","5","9","A","8"].sort(function(){return Math.random()-.5;}).forEach(function(h){
+      var chip=document.createElement("div"); chip.className="chip"; chip.textContent=h; chip.dataset.h=h;
+      pool.appendChild(chip);
+      makeDraggable(chip, function(c,dz){
+        if(dz.classList.contains("hexcard") && !dz.classList.contains("filled")){
+          dz.childNodes[0].textContent = c.dataset.h;
+          dz.classList.add("filled");
+          l8Slots[parseInt(dz.dataset.idx,10)] = c.dataset.h;
+          c.dataset.used="1"; c.style.opacity=.25; c.style.pointerEvents="none";
+        }
+      });
+    });
+  }
+  initL8();
+  hintBtn("l8-hint","l8-hint-text",40);
+  document.getElementById("l8-reset").addEventListener("click", function(){
+    initL8(); clearFeedback("l8-fb"); resetHint("l8-hint","l8-hint-text");
+  });
+  document.getElementById("l8-check").addEventListener("click", function(){
+    if(l8Slots.includes(null)){ feedback("l8-fb", false, "Заполни обе ячейки."); return; }
+    if(l8Slots.join("") === L8_ANSWER.join("")){
+      sndOk();
+      feedback("l8-fb", true, "Верно! 1B + 2C = 47₁₆.");
+      award(8, 20);
+      setTimeout(function(){ showScreen("9"); }, 900);
+    } else {
+      sndBad();
+      feedback("l8-fb", false, "Не совпадает. B + C = 23 → 7 и перенос 1; 1 + 2 + 1 = 4.");
+    }
+  });
+
+  // УРОВЕНЬ 9
+  var L9_ANSWER = ["2","6","7"];
+  var l9Slots;
+  function initL9(){
+    l9Slots = [null,null,null];
+    var slotsEl = document.getElementById("l9-slots"); slotsEl.innerHTML="";
+    var pool = document.getElementById("l9-pool"); pool.innerHTML="";
+    ["010","110","111"].forEach(function(bits,i){
+      var dz = document.createElement("div"); dz.className="dz hexcard"; dz.dataset.idx=i;
+      var hint = document.createElement("div"); hint.className="weight-hint"; hint.textContent = bits;
+      dz.appendChild(hint);
+      slotsEl.appendChild(dz);
+    });
+    ["2","6","7","1","5","4","3","0"].sort(function(){return Math.random()-.5;}).forEach(function(h){
+      var chip=document.createElement("div"); chip.className="chip"; chip.textContent=h; chip.dataset.h=h;
+      pool.appendChild(chip);
+      makeDraggable(chip, function(c,dz){
+        if(dz.classList.contains("hexcard") && !dz.classList.contains("filled")){
+          dz.childNodes[0].textContent = c.dataset.h;
+          dz.classList.add("filled");
+          l9Slots[parseInt(dz.dataset.idx,10)] = c.dataset.h;
+          c.dataset.used="1"; c.style.opacity=.25; c.style.pointerEvents="none";
+        }
+      });
+    });
+  }
+  initL9();
+  hintBtn("l9-hint","l9-hint-text",45);
+  document.getElementById("l9-reset").addEventListener("click", function(){
+    initL9(); clearFeedback("l9-fb"); resetHint("l9-hint","l9-hint-text");
+  });
+  document.getElementById("l9-check").addEventListener("click", function(){
+    if(l9Slots.includes(null)){ feedback("l9-fb", false, "Заполни все три ячейки."); return; }
+    if(l9Slots.join("") === L9_ANSWER.join("")){
+      sndOk();
+      feedback("l9-fb", true, "Верно! 10110111₂ = 267₈.");
+      award(9, 20);
+      setTimeout(function(){ showScreen("10"); }, 900);
+    } else {
+      sndBad();
+      feedback("l9-fb", false, "Не совпадает. Дополни слева нулём и разбей: 010 | 110 | 111.");
+    }
+  });
+
+  // УРОВЕНЬ 10
+  var L10_ANSWER = ["A"];
+  var l10Slots;
+  function initL10(){
+    l10Slots = [null];
+    var slotsEl = document.getElementById("l10-slots"); slotsEl.innerHTML="";
+    var pool = document.getElementById("l10-pool"); pool.innerHTML="";
+    var dz = document.createElement("div"); dz.className="dz hexcard"; dz.dataset.idx=0;
+    var hint = document.createElement("div"); hint.className="weight-hint"; hint.textContent = "1000001₂";
+    dz.appendChild(hint);
+    slotsEl.appendChild(dz);
+    ["A","B","C","D","Z","0"].sort(function(){return Math.random()-.5;}).forEach(function(h){
+      var chip=document.createElement("div"); chip.className="chip"; chip.textContent=h; chip.dataset.h=h;
+      pool.appendChild(chip);
+      makeDraggable(chip, function(c,dz){
+        if(dz.classList.contains("hexcard") && !dz.classList.contains("filled")){
+          dz.childNodes[0].textContent = c.dataset.h;
+          dz.classList.add("filled");
+          l10Slots[0] = c.dataset.h;
+          c.dataset.used="1"; c.style.opacity=.25; c.style.pointerEvents="none";
+        }
+      });
+    });
+  }
+  initL10();
+  hintBtn("l10-hint","l10-hint-text",50);
+  document.getElementById("l10-reset").addEventListener("click", function(){
+    initL10(); clearFeedback("l10-fb"); resetHint("l10-hint","l10-hint-text");
+  });
+  document.getElementById("l10-check").addEventListener("click", function(){
+    if(l10Slots.includes(null)){ feedback("l10-fb", false, "Перетащи букву в ячейку."); return; }
+    if(l10Slots.join("") === L10_ANSWER.join("")){
+      sndOk();
+      feedback("l10-fb", true, "Верно! Код 65 — это буква A. Станция взломана!");
+      award(10, 20);
+      finishGame();
+      setTimeout(function(){ sndFanfare(); showScreen("final"); }, 1000);
+    } else {
+      sndBad();
+      feedback("l10-fb", false, "Не та буква. Посчитай: 1000001₂ = 64 + 1 = 65. Какая буква имеет код 65?");
+    }
+  });
+
+  function getRank(score){
+    if(score >= 200) return {cls:"rank-grandmaster", label:"🏆 Грандмастер систем счисления"};
+    if(score >= 100) return {cls:"rank-specialist", label:"⭐ Специалист по системам счисления"};
+    return {cls:"rank-novice", label:"🔰 Новичок с потенциалом"};
+  }
+
+  function finishGame(){
+    document.getElementById("certName").textContent = (state.avatar||"🛰️") + " " + (state.nick||"Хакер");
+    document.getElementById("certScore").textContent = state.score;
+    var code = (state.nick||"HACK").split("").map(function(ch){return ch.charCodeAt(0).toString(16).toUpperCase();}).join(" ");
+    var codeStr = "КОД СЕРТИФИКАТА: " + code.slice(0,29);
+    document.getElementById("certCode").textContent = codeStr;
+
+    var rank = getRank(state.score);
+    var badge = document.getElementById("rankBadge");
+    badge.className = "rank-badge " + rank.cls;
+    badge.textContent = rank.label;
+
+    var certWin = document.getElementById("certWindow");
+    var borderColor = "#0831d9", shadowColor = "rgba(0,0,0,.45)";
+    if(rank.cls === "rank-grandmaster"){ borderColor = "#c25400"; shadowColor = "rgba(255,180,0,.7)"; }
+    else if(rank.cls === "rank-specialist"){ borderColor = "#1c5adb"; shadowColor = "rgba(28,90,219,.5)"; }
+    certWin.style.borderColor = borderColor;
+    certWin.style.boxShadow = "0 0 24px " + shadowColor;
+
+    drawCertificate(state.nick||"Хакер", state.avatar||"🛰️", state.score, codeStr, rank);
+  }
+
+  function drawCertificate(nick, avatar, score, codeStr, rank){
+    var canvas = document.getElementById("certCanvas");
+    var g = canvas.getContext("2d");
+    var W = canvas.width, H = canvas.height;
+
+    var sky = g.createLinearGradient(0,0,0,H);
+    sky.addColorStop(0,"#bfe0ff"); sky.addColorStop(0.55,"#5ea3ff"); sky.addColorStop(1,"#1c5adb");
+    g.fillStyle = sky; g.fillRect(0,0,W,H);
+    g.fillStyle = "rgba(63,169,63,.55)";
+    g.beginPath(); g.ellipse(W*0.3, H+40, W*0.9, 160, 0, 0, Math.PI*2); g.fill();
+
+    g.fillStyle = "#ece9d8";
+    roundRect(g, 40, 40, W-80, H-80, 10); g.fill();
+    g.lineWidth = 4; g.strokeStyle = rank && rank.cls === "rank-grandmaster" ? "#c25400" : "#0831d9";
+    roundRect(g, 40, 40, W-80, H-80, 10); g.stroke();
+
+    var tbGrad = g.createLinearGradient(0,50,0,86);
+    tbGrad.addColorStop(0,"#5ea3ff"); tbGrad.addColorStop(1,"#0c3fb5");
+    g.fillStyle = tbGrad; roundRect(g,44,44,W-88,42,[6,6,0,0]); g.fill();
+    g.fillStyle = "#fff"; g.font = "bold 18px Tahoma, sans-serif";
+    g.fillText("🏆 Доступ разрешён.exe", 62, 71);
+
+    g.textAlign = "center";
+    g.fillStyle = "#5a4400"; g.font = "bold 40px Tahoma, sans-serif";
+    g.fillText("СЕРТИФИКАТ ХАКЕРА", W/2, 170);
+    g.font = "16px Tahoma, sans-serif"; g.fillStyle = "#4a4a3f";
+    g.fillText("станция «Горизонт-9» — системы счисления", W/2, 200);
+
+    g.font = "56px Tahoma, sans-serif";
+    g.fillText(avatar, W/2, 280);
+
+    g.font = "bold 32px Tahoma, sans-serif"; g.fillStyle = "#0b3fae";
+    g.fillText(nick, W/2, 330);
+
+    g.font = "18px Tahoma, sans-serif"; g.fillStyle = "#333";
+    g.fillText("прошёл(-ла) все десять уровней защиты и взломал(а) станцию", W/2, 365);
+
+    g.font = "bold 26px Tahoma, sans-serif"; g.fillStyle = "#c25400";
+    g.fillText("Итоговый счёт: " + score, W/2, 415);
+
+    if(rank){
+      g.font = "bold 18px Tahoma, sans-serif"; g.fillStyle = "#7a3f00";
+      g.fillText(rank.label, W/2, 450);
+    }
+
+    g.font = "16px Consolas, monospace"; g.fillStyle = "#7a3f00";
+    g.fillText(codeStr, W/2, 490);
+
+    var d = new Date();
+    g.font = "13px Tahoma, sans-serif"; g.fillStyle = "#4a4a3f";
+    g.fillText("Дата: " + d.toLocaleDateString("ru-RU"), W/2, H-70);
+
+    // Пасхалка 24: реальный QR на Википедию
+    var url = "https://ru.wikipedia.org/wiki/Система_счисления";
+    var qrSize = 110;
+    var qrX = W - 40 - qrSize - 15;
+    var qrY = 120;
+    var drawn = false;
+    try {
+      if(window.QRCode && typeof QRCode.toCanvas === "function"){
+        var qrCanvas = document.createElement("canvas");
+        QRCode.toCanvas(qrCanvas, url, {width: qrSize, margin: 1}, function(err){
+          if(!err){
+            g.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
+            document.getElementById("certPreview").src = canvas.toDataURL("image/png");
+          }
+        });
+      }
+    } catch(e){}
+
+    g.textAlign = "left";
+    document.getElementById("certPreview").src = canvas.toDataURL("image/png");
+  }
+  function roundRect(g,x,y,w,h,r){
+    if(typeof r === "number") r = [r,r,r,r];
+    g.beginPath();
+    g.moveTo(x+r[0],y);
+    g.lineTo(x+w-r[1],y); g.arcTo(x+w,y,x+w,y+r[1],r[1]);
+    g.lineTo(x+w,y+h-r[2]); g.arcTo(x+w,y+h,x+w-r[2],y+h,r[2]);
+    g.lineTo(x+r[3],y+h); g.arcTo(x,y+h,x,y+h-r[3],r[3]);
+    g.lineTo(x,y+r[0]); g.arcTo(x,y,x+r[0],y,r[0]);
+    g.closePath();
+  }
+
+  document.getElementById("downloadCertBtn").addEventListener("click", function(){
+    var canvas = document.getElementById("certCanvas");
+    var a = document.createElement("a");
+    a.download = "sertifikat-" + (state.nick||"hacker").replace(/[^a-zA-Zа-яА-Я0-9]/g,"_") + ".png";
+    a.href = canvas.toDataURL("image/png");
+    document.body.appendChild(a); a.click(); a.remove();
+    sndClick();
+  });
+
+  document.getElementById("restartBtn").addEventListener("click", function(){
+    localStorage.removeItem(LS_KEY);
+    location.reload();
+  });
+
+  // ─── БОНУСНЫЙ УРОВЕНЬ: усложнённый лабиринт ───
+  var maze = {
+    cols: 13, rows: 13,
+    grid: null,
+    player: {c:0, r:0},
+    goal: {c:12, r:12},
+    active: false,
+    won: false,
+    cell: 34
+  };
+
+  // Усложнённый лабиринт: путь не по периметру, а через центр с развилками
+  // S — старт (0,0), F — финиш (12,12)
+  var MAZE_LAYOUT = [
+    "S..#.....#...",
+    ".#.#.###.#.#.",
+    ".#...#.....#.",
+    ".#.#.#.#.#.#.",
+    "...#.#.#...#.",
+    ".#.#.#.#.#.#.",
+    ".#...#...#.#.",
+    ".#.#.#.#.#.#.",
+    "...#.#.#.#...",
+    ".#.#.#.#.#.#.",
+    ".#...#...#.#.",
+    ".#.#.#.#.#.#.",
+    "...#.....#..F"
+  ];
+
+  function initMaze(){
+    maze.grid = MAZE_LAYOUT.map(function(row){
+      return row.split("").map(function(ch){ return ch === "#" ? 1 : 0; });
+    });
+    maze.player = {c:0, r:0};
+    maze.goal = {c:12, r:12};
+    maze.won = false;
+    document.getElementById("mazeWin").classList.remove("show");
+    drawMaze();
+  }
+
+  function drawMaze(){
+    var cv = document.getElementById("mazeCanvas");
+    var g = cv.getContext("2d");
+    var wrap = cv.parentElement;
+    var maxW = Math.min(wrap.clientWidth - 20, 520);
+    var cell = Math.floor(maxW / maze.cols);
+    if(cell < 18) cell = 18;
+    cv.width = cell * maze.cols;
+    cv.height = cell * maze.rows;
+    maze.cell = cell;
+
+    g.fillStyle = "#111"; g.fillRect(0, 0, cv.width, cv.height);
+    for(var r=0; r<maze.rows; r++){
+      for(var c=0; c<maze.cols; c++){
+        if(maze.grid[r][c] === 1){
+          g.fillStyle = "#4a4a3a";
+          g.fillRect(c*cell, r*cell, cell, cell);
+          g.strokeStyle = "#6a6a52"; g.lineWidth = 1;
+          g.strokeRect(c*cell+0.5, r*cell+0.5, cell-1, cell-1);
+        }
+      }
+    }
+    g.font = (cell*0.7) + "px serif";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillText("🏁", maze.goal.c*cell + cell/2, maze.goal.r*cell + cell/2);
+    g.font = (cell*0.75) + "px serif";
+    g.fillText("🏃", maze.player.c*cell + cell/2, maze.player.r*cell + cell/2);
+    g.textAlign = "left"; g.textBaseline = "alphabetic";
+  }
+
+  function moveMaze(dc, dr){
+    if(!maze.active || maze.won) return;
+    var nc = maze.player.c + dc, nr = maze.player.r + dr;
+    if(nc < 0 || nr < 0 || nc >= maze.cols || nr >= maze.rows) return;
+    if(maze.grid[nr][nc] === 1) return;
+    maze.player.c = nc; maze.player.r = nr;
+    sndStep();
+    drawMaze();
+    if(nc === maze.goal.c && nr === maze.goal.r){
+      maze.won = true;
+      maze.active = false; // фиксируем победу — повторно пройти нельзя
+      sndWin();
+      document.getElementById("mazeWin").classList.add("show");
+    }
+  }
+
+  document.addEventListener("keydown", function(e){
+    if(!maze.active) return;
+    if(e.key === "ArrowUp" || e.key === "w" || e.key === "W"){ e.preventDefault(); moveMaze(0,-1); }
+    else if(e.key === "ArrowDown" || e.key === "s" || e.key === "S"){ e.preventDefault(); moveMaze(0,1); }
+    else if(e.key === "ArrowLeft" || e.key === "a" || e.key === "A"){ e.preventDefault(); moveMaze(-1,0); }
+    else if(e.key === "ArrowRight" || e.key === "d" || e.key === "D"){ e.preventDefault(); moveMaze(1,0); }
+  });
+
+  document.querySelectorAll("#mazeDpad button").forEach(function(b){
+    var fire = function(e){ e.preventDefault(); var d = b.dataset.dir;
+      if(d === "up") moveMaze(0,-1);
+      else if(d === "down") moveMaze(0,1);
+      else if(d === "left") moveMaze(-1,0);
+      else if(d === "right") moveMaze(1,0);
+    };
+    b.addEventListener("pointerdown", fire);
+  });
+
+  var swX = 0, swY = 0;
+  var mazeCv = document.getElementById("mazeCanvas");
+  mazeCv.addEventListener("touchstart", function(e){
+    var t = e.touches[0]; swX = t.clientX; swY = t.clientY;
+  }, {passive:true});
+  mazeCv.addEventListener("touchend", function(e){
+    if(!maze.active) return;
+    var t = e.changedTouches[0];
+    var dx = t.clientX - swX, dy = t.clientY - swY;
+    if(Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+    if(Math.abs(dx) > Math.abs(dy)){
+      moveMaze(dx > 0 ? 1 : -1, 0);
+    } else {
+      moveMaze(0, dy > 0 ? 1 : -1);
+    }
+  }, {passive:true});
+
+  document.getElementById("bonusHint").addEventListener("click", function(){
+    if(maze.won) return; // повторно нельзя
+    var w = document.getElementById("mazeWrap");
+    var opening = !w.classList.contains("show");
+    w.classList.toggle("show");
+    if(opening){
+      maze.active = true;
+      initMaze();
+      sndClick();
+      setTimeout(function(){
+        w.scrollIntoView({behavior:"smooth", block:"start"});
+      }, 100);
+    } else {
+      maze.active = false;
+    }
+  });
+
+  // Запуск
+  if(state.level && state.level !== "onboard"){
+    if(state.level === "final") finishGame();
+    showScreen(state.level);
+  } else {
+    updateTopbar();
+  }
+})();
+</script>
+</body>
+</html>
